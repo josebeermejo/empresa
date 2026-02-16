@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: steward-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-stewarddb}
+    ports:
+      - '${PORT_POSTGRES:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - steward-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: steward-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - steward-network
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: steward-api
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT_API:-8080}
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-stewarddb}
+      REDIS_URL: redis://redis:6379
+      STORAGE_DIR: /app/storage
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_CORS_ORIGIN: http://localhost:${PORT_WEB:-5173}
+    ports:
+      - '${PORT_API:-8080}:8080'
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - steward-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: steward-web
+    environment:
+      VITE_API_URL: http://localhost:${PORT_API:-8080}
+    ports:
+      - '${PORT_WEB:-5173}:5173'
+    depends_on:
+      - api
+    networks:
+      - steward-network
+    restart: unless-stopped
+
+  py-quality:
+    build:
+      context: ./services/py-quality
+      dockerfile: Dockerfile
+    container_name: steward-py-quality
+    environment:
+      PORT: ${PORT_PY_QUALITY:-8000}
+    ports:
+      - '${PORT_PY_QUALITY:-8000}:8000'
+    networks:
+      - steward-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  steward-network:
+    driver: bridge

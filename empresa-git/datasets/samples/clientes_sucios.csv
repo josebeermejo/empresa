@@ -1,0 +1,9 @@
+id,nombre,email,telefono,ciudad,edad
+1,Juan Pérez,juan@example.com,+34600123456,Madrid,35
+2,María García,maria.garcia@,600234567,Barcelona,28
+3,Pedro López,pedro@example.com,,Valencia,
+4,Ana Martínez,ana@example.com,600345678,Sevilla,42
+5,Juan Pérez,juan@example.com,+34600123456,Madrid,35
+6,Luis Sánchez,LUIS@EXAMPLE.COM,+34-600-456-789,Bilbao,31
+7,Carmen Ruiz,,600567890,Málaga,29
+8,José Fernández,jose@example,+34 600 678 901,Zaragoza,45

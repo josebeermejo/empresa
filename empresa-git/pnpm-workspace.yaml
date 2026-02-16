@@ -1,0 +1,5 @@
+# pnpm workspace configuration
+# Alternative: npm workspaces are configured in root package.json
+packages:
+  - 'apps/*'
+  - 'services/*'

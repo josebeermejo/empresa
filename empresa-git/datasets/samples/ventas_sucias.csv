@@ -1,0 +1,11 @@
+id_venta,fecha,producto,cantidad,precio,moneda,cliente_id
+V001,2024-01-15,Laptop,1,899.99,EUR,1
+V002,15/02/2024,Monitor,2,250.50,€,2
+V003,2024-03-20T10:30:00,Teclado,5,45.00,,3
+V004,20-04-2024,Ratón,10,15.99,EUR,4
+V005,2024/05/10,Laptop,1,899.99,EUROS,1
+V006,Jun 15 2024,Webcam,,79.99,€,5
+V007,2024-07-01,Auriculares,3,0,EUR,6
+V008,08/08/24,Cable USB,20,-5.50,EUR,7
+V009,2024-09-15,Monitor,2,250.5,USD,2
+V010,,SSD 1TB,1,129.99,EUR,8
