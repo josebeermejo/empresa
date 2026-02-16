@@ -1,0 +1,1926 @@
+PROMPT MAESTRO — 4. FRONTEND WEB (Vite + React + TypeScript)
+=============================================================
+
+ROL / CONTEXTO
+--------------
+Actúas como un equipo sénior de Frontend (Tech Lead + UI Engineer + DX + QA) para implementar la **UI web de AI Data Steward**
+sobre **Vite + React + TypeScript**. Debes producir una app **real, accesible, rápida y testeada**, que consuma la API (Prompt 2)
+y ponga las bases para reglas no‑code e IA (Prompt 6/7). Respeta el monorepo y los puertos definidos.
+
+OBJETIVO ESPECÍFICO
+-------------------
+- Crear la aplicación en **/apps/web** con:
+  - Rutas: “Home”, “Modo Usuario (negocio)”, “Modo Ingeniería”, “Dataset Detail (issues + preview + apply)”, “Reglas no‑code”, “Dashboard”.
+  - Componentes críticos: **Uploader**, **IssuesTable**, **DiffViewer**, **RulesEditor**, **ChatbotPanel**, **KpiCards**, **NavBar**/**Footer**.
+  - **Estado de servidor** con **TanStack Query**, cliente API centralizado y manejo consistente de loading/errores.
+  - **i18n (es‑ES)**; accesibilidad (roles/aria, foco visible, contraste).
+  - **Testing**: Vitest + React Testing Library (unit/integración) y **MSW** para mocks HTTP.
+  - Preparada para **Playwright** (E2E se montará en Prompt 9).
+
+ALCANCE FUNCIONAL
+-----------------
+1) **Home `/`**: hero con propuesta de valor, botones a `/usuario` y `/ingenieria`, tarjetas KPI (tiempo objetivo, % errores corregidos, RGPD).
+2) **Modo Usuario `/usuario`**: guía de 4 pasos (Sube → Detecta → Previsualiza → Exporta) con componente **Uploader**.
+3) **Modo Ingeniería `/ingenieria`**: tarjetas de navegación a (Arquitectura, Datos/BD, Seguridad, IA) y enlaces internos a páginas del producto.
+4) **Dataset Detail `/datasets/:id`**:
+   - Pestaña **Issues**: tabla con filtro/severidad, contador.
+   - Pestaña **Preview Fixes**: vista **DiffViewer** (before/after) y botón **Aplicar** arreglos.
+   - Pestaña **Export**: descarga CSV/XLSX limpio (si existe), y *toggle* “MODELO Sheets” (simulado por bandera global).
+5) **Reglas `/reglas`**: CRUD visual; editor del `spec` (JSON) con validación, y botón **Probar** contra 50–100 filas.
+6) **Dashboard `/dashboard`**: widgets (datasets procesados, issues más comunes, tiempos medios por job, últimas reglas creadas).
+7) **Ayuda (Chat)**: **ChatbotPanel** flotante u opción en la UI, consumiendo `/api/assist/*` en modo **mock** por defecto.
+
+ESTRUCTURA DE DIRECTORIOS (apps/web)
+------------------------------------
+/apps/web
+  ├─ package.json
+  ├─ tsconfig.json
+  ├─ vite.config.ts
+  ├─ index.html
+  ├─ .env.example                 # VITE_API_URL, VITE_APP_NAME
+  └─ src/
+     ├─ main.tsx
+     ├─ App.tsx
+     ├─ router.tsx
+     ├─ styles/                   # CSS global / Tailwind opcional
+     │   └─ index.css
+     ├─ lib/
+     │   ├─ api.ts                # cliente HTTP (fetch/axios) + interceptores
+     │   ├─ query.ts              # QueryClient y opciones
+     │   ├─ i18n.ts               # i18next o simple diccionario propio
+     │   ├─ format.ts             # helpers (moneda, fecha, pluralización)
+     │   ├─ a11y.ts               # utilidades foco/aria (si procede)
+     │   └─ env.ts                # lee variables VITE_*
+     ├─ hooks/
+     │   ├─ useHealth.ts
+     │   ├─ useDatasets.ts
+     │   ├─ useIssues.ts
+     │   ├─ useFixes.ts
+     │   ├─ useRules.ts
+     │   └─ useAssist.ts
+     ├─ components/
+     │   ├─ NavBar.tsx
+     │   ├─ Footer.tsx
+     │   ├─ Uploader.tsx
+     │   ├─ IssuesTable.tsx
+     │   ├─ DiffViewer.tsx
+     │   ├─ RulesEditor.tsx
+     │   ├─ ChatbotPanel.tsx
+     │   ├─ KpiCards.tsx
+     │   ├─ Tabs.tsx               # tabs accesibles
+     │   ├─ DataTable.tsx          # tabla generica (teclado + aria)
+     │   └─ FormField.tsx
+     ├─ pages/
+     │   ├─ Home.tsx
+     │   ├─ Usuario.tsx
+     │   ├─ Ingenieria.tsx
+     │   ├─ DatasetDetail/
+     │   │   ├─ DatasetLayout.tsx  # cabecera con breadcrumbs, tabs
+     │   │   ├─ IssuesTab.tsx
+     │   │   ├─ PreviewTab.tsx
+     │   │   └─ ExportTab.tsx
+     │   ├─ Reglas.tsx
+     │   └─ Dashboard.tsx
+     ├─ __tests__/                 # unit/integración (Vitest + RTL + MSW)
+     │   ├─ Uploader.spec.tsx
+     │   ├─ IssuesTable.spec.tsx
+     │   ├─ DiffViewer.spec.tsx
+     │   ├─ RulesEditor.spec.tsx
+     │   ├─ ChatbotPanel.spec.tsx
+     │   └─ router.spec.tsx
+     └─ mocks/
+         ├─ handlers.ts            # MSW: /health, /upload, /datasets, /issues...
+         └─ server.ts
+
+DEPENDENCIAS
+------------
+- React 18+, React Router, TypeScript estricto.
+- TanStack Query para estado de servidor.
+- Styling: Tailwind (opcional) o CSS Modules + PostCSS. Si usas Tailwind, configura `tailwind.config.js` + `index.css`.
+- Testing: Vitest, @testing-library/react, @testing-library/user-event, MSW.
+- Tipado zod (opcional) para validar respuestas del backend antes de usarlas en la UI.
+
+CONFIGURACIÓN (Vite & Env)
+--------------------------
+- `.env.example`:
+  - `VITE_API_URL=http://localhost:8080`
+  - `VITE_APP_NAME=AI Data Steward`
+  - (opcional) `VITE_FEATURE_EXPORT_SHEETS=false`
+- `vite.config.ts`:
+  - Server dev en puerto 5173.
+  - Proxy opcional a `/api` → `http://localhost:8080` (si se desea ruta relativa).
+- `src/lib/env.ts` expone `API_URL`, `APP_NAME`, flags de features.
+
+ENRUTADO Y LAYOUT
+-----------------
+- `router.tsx`: define rutas y lazy‑loading si procede.
+- Diseño base:
+  - **NavBar** con nombre del proyecto, links a Home, Usuario, Ingeniería, Reglas, Dashboard.
+  - **Footer** con información legal básica (política de datos, retención).
+  - Contenedor principal con “skip‑to‑content”.
+
+CLIENTE HTTP Y ESTADO (Query)
+-----------------------------
+- `src/lib/api.ts`: cliente fetch/axios con:
+  - BaseURL = `VITE_API_URL`.
+  - Interceptor de errores → crea objeto de error uniforme (status, code, message).
+- Query:
+  - `src/lib/query.ts` con `new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 30_000 } } })`.
+- Hooks (devuelve {data, isLoading, error}):
+  - `useHealth()` → GET `/health` + `/ready`.
+  - `useDataset(id)` → GET `/api/datasets/:id`.
+  - `useIssues(id)` → GET `/api/datasets/:id/issues`.
+  - `useFixesPreview(id, payload)` → POST `/api/datasets/:id/fixes/preview`.
+  - `useApplyFixes(id, payload)` → POST `/api/datasets/:id/fixes/apply`.
+  - `useRules()` / `useCreateRule()` / `useUpdateRule()` / `useDeleteRule()`.
+  - `useAssist()` → POST `/api/assist/*` (mock).
+
+PÁGINAS Y DETALLES DE INTERACCIÓN
+---------------------------------
+1) **Home**:
+   - Hero con frase de valor, botones a `/usuario` y `/ingenieria`.
+   - KPIs (estáticos al principio): “3 min por archivo”, “+90% errores detectados”, “RGPD por defecto”.
+   - Tarjetas con bullets del flujo.
+
+2) **Usuario**:
+   - Sección **Uploader**:
+     - Arrastre/selección (CSV/XLSX).
+     - Validación cliente: tamaño máx., tipo.
+     - `POST /api/upload` → al recibir `{datasetId}`, redirige a `/datasets/:id`.
+   - Paso a paso en UI (chips o timeline).
+
+3) **Ingeniería**:
+   - Tarjetas con enlace a vistas internas del producto (Dataset, Reglas, Dashboard).
+   - Texto de alto nivel (arquitectura, seguridad, IA) como acceso pedagógico.
+
+4) **Dataset Detail**:
+   - `DatasetLayout`: cabecera con filename, status y tabs.
+   - Tab **Issues**:
+     - **IssuesTable**: columnas: kind, severity, row, col, details, actions.
+     - Filtros por kind/severity y búsqueda por columna/valor.
+   - Tab **Preview Fixes**:
+     - **DiffViewer**: dos columnas (before/after), resalta celdas modificadas.
+     - Botón “Aplicar cambios” → `useApplyFixes` (toast de resultado, invalidar queries).
+   - Tab **Export**:
+     - Si hay archivo limpio → botón **Descargar CSV**.
+     - Si `VITE_FEATURE_EXPORT_SHEETS=true` → tarjeta con “Conectar Sheets” (simulado, explica que requiere claves).
+
+5) **Reglas**:
+   - Listado con name/kind/severity/createdAt.
+   - Formulario “Nueva Regla” / “Editar Regla”:
+     - Campos: name, kind (select), severity, editor JSON para `spec`.
+     - Botón **Validar** (zod de frontend) → feedback inline.
+     - Botón **Probar**: llama a `/api/datasets/:id/fixes/preview` con sample y la regla actual, renderiza diff.
+   - Acciones: guardar, duplicar, eliminar.
+
+6) **Dashboard**:
+   - **KpiCards**: datasets totales, issues reportados, tiempo medio de proceso, top 3 kinds.
+   - Gráficas simples (si añades una pequeña lib; sino, cards/tablas).
+
+COMPONENTES CLAVE (PROPS & COMPORTAMIENTO)
+------------------------------------------
+- `Uploader`
+  - Props: `onUploaded: (datasetId: string) => void`.
+  - Lógica: input type="file", drag & drop, formData a `/api/upload`.
+  - Estados: idle, uploading, error, success (redirige en success).
+
+- `IssuesTable`
+  - Props: `{ issues: Issue[], onFilterChange? }`.
+  - Render: DataTable accesible con teclas, `aria-rowcount`, etc.
+  - Opcional: exportar issues a CSV local (botón).
+
+- `DiffViewer`
+  - Props: `{ preview: FixPreview[], compact?: boolean }`.
+  - Render: filas con before/after; resalta diferencias; tooltip de explanation.
+  - Acción “Aplicar” lo maneja la página padre (pasa callback o usa hook).
+
+- `RulesEditor`
+  - Props: `{ rule?: RuleSpec, onSave: (rule) => void }`.
+  - Incluye editor JSON con validación (zod) y mensajes claros.
+  - Preview: muestra tabla con cambios simulados contra 50–100 filas.
+
+- `ChatbotPanel`
+  - Caja de texto con botón “Enviar”.
+  - Llama a `/api/assist/explain|classify|rag` (mock) y muestra respuesta con `sources` (rag).
+  - Historial corto en memoria; botón “borrar historial”.
+
+ESTILOS / A11Y / UX
+-------------------
+- Base CSS con variables y modo oscuro opcional (prefiere `prefers-color-scheme`).
+- Enfasis en foco visible, labels asociados, `aria-live` para toasts de estado.
+- Botones con tamaño target mínimo, contraste AA.
+- “Skip to content” al inicio del documento.
+
+INTERNACIONALIZACIÓN
+--------------------
+- `lib/i18n.ts`: diccionario `es` (por defecto); claves para labels, títulos, mensajes de error y tooltips.
+- Hook `useT()` que recupere textos con fallback.
+
+ERRORES Y TOASTS
+----------------
+- Interceptor global de errores HTTP → mostrar toast con mensaje estandarizado (p.ej. “No se pudo conectar”, “Validación fallida”).
+- En formularios: mensajes inline debajo del campo.
+
+TYPES Y VALIDACIÓN
+------------------
+- Define tipos `Issue`, `FixPreview`, `RuleSpec`, `DatasetMeta` en `src/types` o importarlos desde `zod` schemas (si los replicas).
+- Opcional: valida payloads de respuestas con zod antes de setear en estado.
+
+MSW (Mock Service Worker) PARA TESTS
+------------------------------------
+- `mocks/handlers.ts`: define handlers para:
+  - GET /health, GET /ready
+  - POST /api/upload
+  - GET /api/datasets/:id
+  - GET /api/datasets/:id/issues
+  - POST /api/datasets/:id/fixes/preview
+  - POST /api/datasets/:id/fixes/apply
+  - GET/POST/PUT/DELETE /api/rules
+  - POST /api/assist/*
+- `mocks/server.ts`: setupServer y utilidades de arranque/parada para Vitest.
+
+TESTS (Vitest + RTL)
+--------------------
+- `Uploader.spec.tsx`: simula file input, MSW responde con `{datasetId}`, expect redirección.
+- `IssuesTable.spec.tsx`: render con datos, usa filtros y evalúa accesibilidad básica (roles, headers).
+- `DiffViewer.spec.tsx`: render before/after y eventos de scroll/tecla; snapshot mínimo (sin excesos).
+- `RulesEditor.spec.tsx`: validación `spec` malformado (error visible) y guardado OK (MSW).
+- `ChatbotPanel.spec.tsx`: request mock a /assist/explain y render de respuesta.
+- `router.spec.tsx`: navegación entre rutas y manejo 404 si se da el caso.
+
+COMANDOS NPM/VITE
+-----------------
+- `pnpm --filter @{{ORG_NAME}}/web dev`  → Vite dev server
+- `pnpm --filter @{{ORG_NAME}}/web build`→ build producción
+- `pnpm --filter @{{ORG_NAME}}/web preview` → previsualización
+- `pnpm --filter @{{ORG_NAME}}/web test` → Vitest
+
+INTEGRACIÓN CON PROMPTS 2 Y 3
+-----------------------------
+- La API debe estar en `:8080`. Usa `VITE_API_URL` o proxy Vite para `/api`.
+- El servicio Python no se llama directamente desde la web (lo hace la API). La web sólo consume endpoints del Prompt 2.
+
+OPTIMIZACIÓN Y RENDIMIENTO
+--------------------------
+- Code splitting por rutas con `lazy`/`Suspense`.
+- Memoriza componentes de tabla y usa `virtualización` si superas 1–2k filas (no necesario para MVP).
+- Evita renders innecesarios con `useMemo/useCallback` cuando aporte.
+
+SEGURIDAD (FRONT)
+-----------------
+- No incrustes API keys. Usa sólo `VITE_` con endpoints y toggles.
+- Si añades CSP, documenta excepciones de dev (Vite HMR).
+
+DOCUMENTACIÓN (README DE WEB)
+-----------------------------
+- Requisitos (Node 18+, pnpm 9+).
+- Quickstart:
+  1) `cp .env.example .env`
+  2) `pnpm i`
+  3) `pnpm --filter @{{ORG_NAME}}/web dev`
+  4) Abrir http://localhost:5173
+- Explica variables, scripts, testing y mocks MSW.
+- Describe rutas, componentes críticos y pautas de contribución.
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- Navegación completa entre “Home”, “Usuario”, “Ingeniería”, “Dataset :id”, “Reglas” y “Dashboard”.
+- Subida de CSV/XLSX y redirección automática a `/datasets/:id`.
+- Render estable de issues (mock) y previsualización de fixes; aplicar cambios con feedback claro.
+- CRUD básico de reglas, validación de `spec` y previsualización contra muestra.
+- Chat de ayuda funcional (modo mock) con respuestas renderizadas.
+- Tests clave pasan, y el build de producción no lanza errores de TS ni warnings críticos.
+- Accesibilidad razonable (foco visible, roles/aria en tablas y formularios, contraste adecuado).
+
+NOTAS FINALES
+-------------
+- Mantén componentes reutilizables, sin dependencias innecesarias y con props bien tipadas.
+- El diseño visual puede ser sencillo; prioriza claridad, rendimiento y accesibilidad.
+- Prepara el terreno para Prompt 6 (IA real) y Prompt 7 (motor de reglas) sin romper interfaces.
+- No uses datos reales ni PII; los samples vienen de `/datasets/samples`.
+
+FIN DEL PROMPT 4 — FRONTEND WEB (Vite + React + TypeScript)
+------------------------------------------------------------
+PROMPT MAESTRO — 5. DATOS & MIGRACIONES (PostgreSQL)
+====================================================
+
+ROL / CONTEXTO
+--------------
+Eres el equipo DBA/Backend del proyecto “AI Data Steward”. Tu misión es:
+1) Definir un **modelo relacional** robusto en **PostgreSQL** (orientado a auditoría y trazabilidad).
+2) Implementar **migraciones versionadas**, **semillas** realistas y **repositorios** de acceso desde la API (Node/TS).
+3) Mantener compatibilidad con el almacenamiento local (storage/) mediante **feature flags**.
+4) Sentar las bases para colas, auditoría, retención y limpieza, sin acoplarte a lógica de negocio futura.
+
+REQUISITOS & DECISIONES DE ARQUITECTURA
+---------------------------------------
+- **ORM recomendado**: **Prisma** (Node/TS) por DX, tipado y rapidez.
+  - Alternativa: **Knex** + SQL raw si lo prefieres. Debes dejar una única opción final (Prisma preferente).
+- **Identificadores**: UUID v4 (`uuid`) para claves primarias.
+- **Tiempos**: `timestamptz` en UTC con `DEFAULT now()` y columna `updated_at` actualizada vía trigger o por app.
+- **Tenancy**: Soporte multi‑organización (org_id en entidades de negocio).
+- **Flexibilidad**: columnas `meta jsonb` / `details jsonb` donde aplique (sin abuso; documenta su contenido).
+- **Integridad**: claves foráneas, `ON DELETE CASCADE/RESTRICT` según caso, y `CHECK` en enumeraciones de estado.
+- **Índices**: por claves foráneas y búsquedas (dataset_id, kind, status, created_at DESC).
+- **Transacciones**: operaciones compuestas (ej. aplicar fixes) deben usar transacciones atómicas.
+- **Compatibilidad**: si `FEATURE_DB=false`, la API debe seguir funcionando con modo “storage local” (feature flag, stub o adaptador).
+- **Entorno**: `DATABASE_URL=postgres://postgres:postgres@localhost:5432/stewarddb`.
+
+ESQUEMA RELACIONAL (E‑R ASCII)
+------------------------------
+  organizations (1)───(n) projects (1)───(n) datasets (1)───(n) columns
+                                 │                 ├──(n) issues
+                                 │                 ├──(n) fixes
+                                 │                 ├──(n) exports
+                                 │
+  organizations (1)───(n) users
+  jobs (cola genérica)   logs_audit (auditoría global)
+  rules (por organización)
+
+TABLAS Y CAMPOS (mínimo viable robusto)
+---------------------------------------
+- organizations
+  - id uuid PK
+  - name text NOT NULL
+  - region text NOT NULL DEFAULT 'EU'
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- users
+  - id uuid PK
+  - org_id uuid FK → organizations(id) ON DELETE CASCADE
+  - email text NOT NULL UNIQUE
+  - role text NOT NULL CHECK (role IN ('admin','editor','viewer'))
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- projects
+  - id uuid PK
+  - org_id uuid FK → organizations(id) ON DELETE CASCADE
+  - name text NOT NULL
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- datasets
+  - id uuid PK
+  - project_id uuid FK → projects(id) ON DELETE CASCADE
+  - filename text NOT NULL
+  - status text NOT NULL CHECK (status IN ('new','processing','ready','error'))
+  - meta jsonb NOT NULL DEFAULT '{}'::jsonb  -- resumen: rows, cols, tamaños, etc.
+  - created_at timestamptz NOT NULL DEFAULT now()
+  - updated_at timestamptz NOT NULL DEFAULT now()
+
+- columns
+  - id uuid PK
+  - dataset_id uuid FK → datasets(id) ON DELETE CASCADE
+  - name text NOT NULL
+  - inferred_type text NOT NULL  -- email|phone|date|currency|numeric|text|...
+  - confidence numeric(4,3) NOT NULL CHECK (confidence BETWEEN 0 AND 1)
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- issues
+  - id uuid PK
+  - dataset_id uuid FK → datasets(id) ON DELETE CASCADE
+  - kind text NOT NULL CHECK (kind IN ('email_invalid','phone_invalid','duplicate','date_format','currency','price_zero','id_missing','nif_cif_basic'))
+  - severity text NOT NULL CHECK (severity IN ('info','warn','error'))
+  - row_no integer NULL
+  - col_name text NULL
+  - details jsonb NOT NULL DEFAULT '{}'::jsonb
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- fixes
+  - id uuid PK
+  - dataset_id uuid FK → datasets(id) ON DELETE CASCADE
+  - row_no integer NOT NULL
+  - col_name text NOT NULL
+  - before text NULL
+  - after text NULL
+  - rule_id uuid NULL  -- si procede
+  - explanation text NOT NULL
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- rules
+  - id uuid PK
+  - org_id uuid FK → organizations(id) ON DELETE CASCADE
+  - name text NOT NULL
+  - kind text NOT NULL CHECK (kind IN ('regex','numeric','date','map','phone_es','email','id_not_empty','price_gt0'))
+  - severity text NOT NULL CHECK (severity IN ('info','warn','error'))
+  - spec jsonb NOT NULL               -- parámetros por tipo de regla
+  - created_at timestamptz NOT NULL DEFAULT now()
+  - updated_at timestamptz NULL
+
+- exports
+  - id uuid PK
+  - dataset_id uuid FK → datasets(id) ON DELETE CASCADE
+  - target text NOT NULL CHECK (target IN ('csv','xlsx','sheets'))
+  - status text NOT NULL CHECK (status IN ('queued','processing','done','error'))
+  - details jsonb NOT NULL DEFAULT '{}'::jsonb
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+- jobs
+  - id uuid PK
+  - name text NOT NULL      -- p.ej., 'dataset.ingest'
+  - payload jsonb NOT NULL
+  - status text NOT NULL CHECK (status IN ('queued','processing','done','error'))
+  - attempts integer NOT NULL DEFAULT 0
+  - last_error text NULL
+  - created_at timestamptz NOT NULL DEFAULT now()
+  - updated_at timestamptz NOT NULL DEFAULT now()
+
+- logs_audit
+  - id uuid PK
+  - user_id uuid NULL FK → users(id) ON DELETE SET NULL
+  - action text NOT NULL    -- 'upload_dataset'|'create_rule'|'update_rule'|'delete_rule'|'preview_fixes'|'apply_fixes'|'export'|'delete_dataset'|'purge_dataset'
+  - target text NULL        -- 'dataset:<id>'|'rule:<id>'|...
+  - meta jsonb NOT NULL DEFAULT '{}'::jsonb
+  - created_at timestamptz NOT NULL DEFAULT now()
+
+ÍNDICES RECOMENDADOS
+--------------------
+- datasets: (project_id), (status), (created_at DESC)
+- issues: (dataset_id), (kind), (severity)
+- fixes: (dataset_id, created_at DESC)
+- rules: (org_id, kind)
+- exports: (dataset_id, status)
+- jobs: (name, status), (updated_at DESC)
+- logs_audit: (created_at DESC), (action)
+
+MIGRACIONES CON PRISMA (opción preferente)
+------------------------------------------
+1) Instala Prisma en /apps/api:
+   - `pnpm --filter @{{ORG_NAME}}/api add -D prisma`
+   - `pnpm --filter @{{ORG_NAME}}/api add @prisma/client`
+2) Crea `prisma/schema.prisma` dentro de /apps/api con:
+   - datasource postgresql y `DATABASE_URL` desde env
+   - generator client
+   - modelos equivalentes a las tablas anteriores (usa `@@index`, `@@map` para nombres reales, `@db.Timestamptz(6)`).
+3) Genera migraciones:
+   - `pnpm --filter @{{ORG_NAME}}/api prisma migrate dev --name init_schema`
+   - Asegúrate de que el SQL final usa `timestamptz`, `jsonb`, `CHECK` y `uuid` (Prisma soporta `@default(uuid())`).
+4) Seed:
+   - Crea `prisma/seed.ts`: inserta una org “DemoLab”, 1 usuario admin, 1 proyecto “Demo Project”, 2 reglas básicas (`phone_es`, `price_gt0`) y un dataset con meta mínima.
+   - Añade script: `"prisma:seed": "tsx prisma/seed.ts"`
+   - Ejecútalo: `pnpm --filter @{{ORG_NAME}}/api prisma db seed`
+
+ALTERNATIVA KNEX (si decides no usar Prisma)
+---------------------------------------------
+1) `pnpm --filter @{{ORG_NAME}}/api add -D knex pg`
+2) Crea `knexfile.ts` y carpeta `migrations/` con archivos de migración:
+   - `YYYYMMDDHHMMSS_init_schema.ts` con DDL para todas las tablas.
+   - Utiliza `uuid-ossp` (extensión `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`) o genera UUID en app.
+3) Crea seeds en `seeds/` para org/proyecto/reglas/dataset demo.
+4) Scripts:
+   - `"db:migrate": "knex migrate:latest"`
+   - `"db:rollback": "knex migrate:rollback"`
+   - `"db:seed": "knex seed:run"`
+
+REPOSITORIOS DE DATOS (APIs internas en /apps/api)
+---------------------------------------------------
+- `src/db/client.ts`:
+  - Inicializa PrismaClient (o Knex) leyendo `DATABASE_URL`.
+  - Exporta el cliente como singleton.
+- `src/db/repo/datasets.repo.ts`:
+  - `create(projectId, filename, meta) -> dataset`
+  - `getById(id)`
+  - `updateStatus(id, status, meta?)`
+  - `delete(id)`
+- `src/db/repo/issues.repo.ts`:
+  - `bulkInsert(datasetId, issues: IssueDTO[])`
+  - `listByDataset(datasetId)`
+  - `deleteByDataset(datasetId)`
+- `src/db/repo/fixes.repo.ts`:
+  - `bulkInsert(datasetId, fixes: FixDTO[])`
+  - `listByDataset(datasetId)`
+- `src/db/repo/rules.repo.ts`:
+  - `listByOrg(orgId)`
+  - `create(orgId, ruleSpec)`
+  - `update(id, patch)`
+  - `remove(id)`
+- `src/db/repo/exports.repo.ts`, `src/db/repo/jobs.repo.ts`, `src/db/repo/audit.repo.ts` (según se use)
+- Añade tipos DTO en `src/db/types.ts` o comparte los TS de dominio con mappers.
+
+ADAPTACIÓN DE SERVICIOS EXISTENTES (API)
+----------------------------------------
+- `datasets.service.ts`:
+  - En `POST /api/upload`: al registrar dataset, usa repo `create()`. `status='new'`.
+  - Cuando se encole/termine “ingest”, `updateStatus('processing'|'ready'|'error', metaActualizada)`.
+- `issues.service.ts`:
+  - Tras llamar a py-quality (`/detect_issues`), inserta Issues en BD con `bulkInsert`.
+- `fixes.service.ts`:
+  - Al `apply_fixes`, registra `fixes` (opcionalmente); actualiza `meta` del dataset con KPIs (applied/rejected).
+- `rules.service.ts`:
+  - Sustituye JSON local por BD real; CRUD completo.
+- `audit`:
+  - Añade helper `audit(action, target, meta?)` que inserte en `logs_audit`.
+
+COMPATIBILIDAD CON STORAGE LOCAL (feature flag)
+-----------------------------------------------
+- Env `FEATURE_DB=true|false` (por defecto true si hay `DATABASE_URL`).
+- Si `false`, los servicios repos deben **degradar** a modo JSON/storage:
+  - datasets/index.json, rules.json, etc. (ya implementado en Prompt 2).
+- Documenta este comportamiento en `/docs/ARCH.md`.
+
+TRANSACCIONES & CONSISTENCIA
+----------------------------
+- Usa transacciones en:
+  - Aplicar fixes → escribir `fixes` + actualizar `datasets.status/meta`.
+  - Purga/borrado de dataset → borrar issues/fixes/exports + dataset.
+- Para colas: al encolar job “dataset.ingest”, inserta fila en `jobs` con `status='queued'`; el worker actualizará a `processing`/`done`/`error`.
+
+RETENCIÓN & PURGA (alineado con Prompt 8)
+-----------------------------------------
+- Job diario (cron simple en API o worker) que:
+  - `DELETE FROM datasets WHERE created_at < now() - interval 'RETENTION_DAYS days'` (en transacción con cascada).
+  - Purga en `storage/` y escribe en `logs_audit` acción `purge_dataset`.
+- Parametriza `RETENTION_DAYS` en `.env` y refleja en UI (banner de privacidad).
+
+MIGRACIONES SECUNDARIAS (evolución)
+-----------------------------------
+- Cambios de esquema deben:
+  - Incluir migración “up/down”.
+  - Rellenar defaults y migrar datos cuando sea necesario.
+  - Añadir notas en `/docs/ARCH.md` (sección “Evolución de BD / ADR breves”).
+- Evita breaking changes sin compatibilidad temporal (banderas/columnas shadow).
+
+OBSERVABILIDAD
+--------------
+- Si usas Prisma:
+  - Activa logs de queries lentas y errores.
+- Si usas Knex:
+  - Crea wrapper de logging (tiempo por operación y tamaño de lote).
+- La API debe capturar errores de BD y responder con mensajes limpios (no exponer SQL en producción).
+
+PRUEBAS DE DATOS (API)
+----------------------
+- **Unit/Repo**:
+  - datasets.repo: create/get/update/delete.
+  - issues.repo: bulkInsert/listByDataset/deleteByDataset.
+  - rules.repo: CRUD con validaciones y constraints (ej. name no vacío, kind/severity válidos).
+- **Integración**:
+  - Flujo: subir dataset (mock), insertar issues desde py-quality (mock), preview/apply fixes y actualizar meta.
+  - Borrar dataset y verificar que cascada elimina issues/fixes/exports relacionados.
+- **Seeds/E2E** (preparado para Prompt 9):
+  - Semilla consistente para tests e2e (dataset demo, 2 reglas demo, org y proyecto demo).
+
+SCRIPTS Y COMANDOS (API)
+------------------------
+- Prisma:
+  - `"db:gen": "prisma generate"`
+  - `"db:migrate": "prisma migrate dev"`
+  - `"db:deploy": "prisma migrate deploy"`
+  - `"db:studio": "prisma studio"`
+  - `"db:seed": "tsx prisma/seed.ts"`
+- Knex (si decides esta ruta):
+  - `"db:migrate": "knex migrate:latest"`
+  - `"db:rollback": "knex migrate:rollback"`
+  - `"db:seed": "knex seed:run"`
+- Makefile (raíz):
+  - `make db` → corre `pnpm --filter @{{ORG_NAME}}/api db:migrate && pnpm --filter @{{ORG_NAME}}/api db:seed`
+
+DOCUMENTACIÓN
+-------------
+- `/docs/ARCH.md`: añadir diagrama E‑R y decisiones (uuid, jsonb, cascadas, índices).
+- `/docs/API.md`: actualizar contratos que ahora afectan a BD (ids, estados).
+- `/docs/RULES.md`: ejemplos de reglas persistidas (JSON) y relación con motor.
+- `/docs/SEC_RGPD.md`: apuntar retención y purga (conexión Prompt 8).
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- Migraciones aplican y revierten correctamente en un entorno limpio.
+- `make db` deja la BD creada y **seed** con:
+  - 1 organización “DemoLab”
+  - 1 usuario admin
+  - 1 proyecto “Demo Project”
+  - 2 reglas (`phone_es`, `price_gt0`)
+  - 1 dataset demo con `meta` mínima
+- La API puede:
+  - Registrar un dataset (`POST /api/upload` → crea dataset en BD y status='new').
+  - Guardar issues masivamente (tras mock de py-quality).
+  - CRUD de reglas funcionando contra BD.
+  - Borrar dataset y cascada asociada.
+- Modo sin BD (flag) funcional con almacenamiento local.
+- Documentación actualizada y scripts de datos operativos.
+
+NOTAS FINALES
+-------------
+- Prefiere Prisma por DX/tipado; si eliges Knex, sé consistente y elimina Prisma.
+- Evita triggers complejos salvo para `updated_at`; mantén la lógica en app.
+- Usa `jsonb` para detalles que cambian (p. ej., shape de `details` en issues), pero documenta campos esperados para no perder trazabilidad.
+- Diseña el esquema para **evolucionar**: los próximos prompts escribirán/leerán más datos (exportaciones, colas, IA).
+- Asegura que todo queda **idempotente**: repetir seeds/migraciones no debe romper el entorno.
+
+FIN DEL PROMPT 5 — DATOS & MIGRACIONES (PostgreSQL)
+----------------------------------------------------
+PROMPT MAESTRO — 6. IA/LLM + RAG + GUARDRAILS (API Node/TS)
+============================================================
+
+ROL / CONTEXTO
+--------------
+Eres el equipo de Arquitectura de IA de “AI Data Steward”. Tu misión:
+1) Implementar un **driver multi‑proveedor** (mock|gemini|openai|azure) para las funciones de IA.
+2) Diseñar **prompts** seguros (plantillas Markdown), **salidas estructuradas**, **validación zod** y **fallback** determinista.
+3) Implementar un **RAG local** sobre `/docs/*.md` (sin datos personales), con índice ligero en memoria.
+4) Integrar todo en rutas **/api/assist/**: `classify`, `explain`, `rag` (y opcional `rules-assistant`).
+5) Respetar **guardrails**: no enviar PII a modelos externos; truncado; timeouts; observabilidad.
+
+REQUISITOS GENERALES
+--------------------
+- Ubicación: **/apps/api** (Fastify + TypeScript).
+- Estilo: TS estricto, zod para todas las salidas de IA; logs pino; errores normalizados.
+- **Offline por defecto**: `LLM_PROVIDER=mock`. Si el proveedor ≠ mock y falta API key, devolver 501 o fallback.
+- **No PII en prompts**: por diseño y por código (filtrado y truncado).
+- **RAG local**: simple y robusto, sin dependencias pesadas (BM25/TF‑IDF light o cosine sobre embeddings locales opcionales).
+
+ÁRBOL DE ARCHIVOS OBJETIVO (API)
+--------------------------------
+/apps/api
+  └─ src/
+     ├─ lib/
+     │  ├─ llm/
+     │  │  ├─ index.ts              # façade/export
+     │  │  ├─ driver.ts             # interfaz común
+     │  │  ├─ providers/
+     │  │  │  ├─ mock.ts            # respuestas deterministas
+     │  │  │  ├─ gemini.ts          # llamadas reales (si env OK)
+     │  │  │  ├─ openai.ts          # llamadas reales (si env OK)
+     │  │  │  └─ azure.ts           # llamadas reales (si env OK)
+     │  │  ├─ prompts/
+     │  │  │  ├─ classify_column.md # JSON: {type, confidence, rationaleShort}
+     │  │  │  ├─ explain_issue.md   # JSON: {explanation, recommendation}
+     │  │  │  └─ rules_assistant.md # JSON: RuleSpec + sample tests
+     │  │  ├─ schemas.ts            # zod schemas para outputs IA
+     │  │  ├─ sanitize.ts           # filtrado/truncado/anonimización
+     │  │  └─ utils.ts              # retry, timeouts, template loader
+     │  ├─ rag/
+     │  │  ├─ index.ts              # façade RAG
+     │  │  ├─ loader.ts             # carga /docs, split a chunks, cache
+     │  │  ├─ search.ts             # buscador en memoria (BM25/TF‑IDF simple)
+     │  │  └─ format.ts             # formateo de sources y snippets
+     │  └─ validation.ts            # zod parse helpers (ya existente)
+     ├─ routes/
+     │  └─ assist.ts                # POST /api/assist/classify|explain|rag|rules-assistant?
+     ├─ domain/
+     │  ├─ dto.ts                   # Request/Response TS (reutiliza zod types)
+     │  └─ types.ts
+     └─ config/
+        └─ env.ts                   # añade vars LLM_* y RAG_*
+
+VARIABLES DE ENTORNO (config/env.ts)
+------------------------------------
+- LLM_PROVIDER = mock | gemini | openai | azure
+- LLM_MODEL    = (por defecto según proveedor)
+- LLM_TIMEOUT_MS = 10000
+- LLM_MAX_INPUT_CHARS = 6000           # truncado de prompts
+- SEND_TO_LLM = false                  # guardrail RGPD: si false, forzar mock
+- RAG_INDEX_MODE = memory              # por ahora memoria
+- RAG_TOP_K = 3
+- RAG_MAX_CHUNK_CHARS = 800
+- LANGUAGE = es-ES (o LANG global)
+- REGION   = EU (relevante para avisos y políticas)
+
+DISEÑO DEL DRIVER (src/lib/llm/driver.ts)
+-----------------------------------------
+Define una interfaz única para los casos de uso:
+- `classifyColumn(input: { headerName: string; examples?: string[]; lang?: string }): Promise<{type:string;confidence:number;rationaleShort:string}>`
+- `explainIssue(input: { issue: Issue; lang?: string }): Promise<{explanation:string;recommendation:string}>`
+- `rulesAssistant(input: { instruction: string; lang?: string }): Promise<{rule: RuleSpec; tests: Array<{input:any; expect:any}>}>`  # opcional para Prompt 7
+
+Cada proveedor implementa esta interfaz. `index.ts` selecciona proveedor por `env.LLM_PROVIDER`, comprueba `SEND_TO_LLM` y hace fallback si procede.
+
+PLANTILLAS DE PROMPTS (src/lib/llm/prompts/*.md)
+-------------------------------------------------
+1) **classify_column.md**
+   - **system** (resumen): “Eres un Data Steward que clasifica encabezados de columnas de hojas de cálculo. Devuelve **JSON estricto** con la forma `{ "type": "<string>", "confidence": <0..1>, "rationaleShort": "<string breve>" }`. No agregues texto fuera del JSON.”
+   - **user**: incluye `headerName`, lista corta de `examples` (si existen), `lang`.
+   - **instrucciones**: preferir tipos entre: `phone_es|email|date|currency|numeric|text|id|nif_cif_basic|unknown`.
+
+2) **explain_issue.md**
+   - **system**: “Eres un asistente que explica **brevemente** incidencias de calidad en {{LANG}}. Devuelve JSON `{ "explanation": "...", "recommendation": "..." }`.”
+   - **user**: incluye objeto `Issue` (filtrado y truncado) sin datos personales o con valores enmascarados si procede.
+
+3) **rules_assistant.md** (opcional; si no lo usas ahora, deja la plantilla)
+   - **system**: “Devuelve una **RuleSpec JSON** válida para nuestro motor. También devuelve 3–5 casos de prueba mínimos.”
+   - **user**: una instrucción como “teléfono España con +34 y 9 dígitos”.
+
+VALIDACIÓN POST‑LLM (src/lib/llm/schemas.ts)
+--------------------------------------------
+- `ClassifyOut = z.object({ type: z.string(), confidence: z.number().min(0).max(1), rationaleShort: z.string().max(240) })`
+- `ExplainOut  = z.object({ explanation: z.string().max(360), recommendation: z.string().max(360) })`
+- `RuleSpecOut = z.object({ rule: /* tu RuleSpec zod */, tests: z.array(z.object({input: z.any(), expect: z.any()})).min(3) })`
+
+Si la validación **falla**:
+- Loggea un warning (sin PII), anota `provider`, `model`, tamaño input, y responde por **fallback determinista**:
+  - `classifyColumn`: heurística por nombre (regex `tel|movil|phone`→phone_es, `mail|email`→email, `fec|date`→date…).
+  - `explainIssue`: plantillas breves según `issue.kind`.
+  - `rulesAssistant`: devuelve una regla base o un error 422 si prefieres no simular reglas automáticamente.
+
+SANITIZACIÓN Y TRUNCADO (src/lib/llm/sanitize.ts)
+--------------------------------------------------
+- Entrada (issue/details/values):
+  - Eliminar columnas con nombres sensibles conocidos (`dni`, `nif`, `direccion`, `iban`, `card`, etc.) o enmascarar valores con `***`.
+  - Truncar campos de texto a `LLM_MAX_INPUT_CHARS`.
+  - Normalizar saltos de línea y espacios.
+- Añade bandera `includeExamples` para controlar si pasas ejemplos (desactivado si `SEND_TO_LLM=false` o si hay riesgo PII).
+
+RETRY/TIMEOUTS (src/lib/llm/utils.ts)
+-------------------------------------
+- Wrapper `withTimeout(promise, ms)` y `withRetry(fn, {retries, backoffMs})`.
+- Valores por defecto: retries=1, backoffMs=500, timeout=`LLM_TIMEOUT_MS`.
+- Para `provider=mock`, no hay reintentos.
+
+PROVEEDORES (src/lib/llm/providers/*.ts)
+----------------------------------------
+- **mock.ts**:
+  - `classifyColumn`: mapea por heurística sobre `headerName`.
+  - `explainIssue`: texto fijo por `Issue.kind` en {{LANG}} breve.
+  - `rulesAssistant`: regla mínima coherente (o 501 si prefieres diferir).
+- **gemini.ts / openai.ts / azure.ts**:
+  - Cargan plantilla con `templateLoader("classify_column.md")`.
+  - Preparan `messages` system+user (o `input` según SDK/REST).
+  - Ejecutan llamada con timeout y reintento.
+  - Parsean **estrictamente** a JSON y validan con zod.
+  - Si `SEND_TO_LLM=false`, devuelven 501 o fallback `mock` según flag `ALLOW_FALLBACK=true|false`.
+
+RAG LOCAL (src/lib/rag/*)
+-------------------------
+- **loader.ts**:
+  - Carga `/docs/*.md` al inicio (lazy: a la primera consulta) y cachea en memoria.
+  - Split en chunks de tamaño `RAG_MAX_CHUNK_CHARS` (~800), guardando:
+    - `docId`, `path`, `title`, `section`, `content`.
+- **search.ts**:
+  - Implementa una búsqueda por similitud simple:
+    - Opción A (rápida): TF‑IDF/BM25 casero con conteo y normalización básica (sin libs pesadas).
+    - Opción B (opcional): embeddings locales ligeros (si añades una lib con licencia friendly y sin red).
+  - Devuelve top‑k = `RAG_TOP_K`.
+- **format.ts**:
+  - Arma la respuesta `{ answer, sources }`:
+    - `answer`: generar texto breve concatenando fragmentos de los chunks top (sin LLM externo); o si `LLM_PROVIDER!=mock` y `SEND_TO_LLM=true`, puedes pasar los top chunks como contexto (pero por defecto **no** llamamos a LLM para RAG).
+    - `sources`: lista de rutas `/docs/<archivo>#<seccion>`.
+
+ENDPOINTS (src/routes/assist.ts)
+--------------------------------
+- `POST /api/assist/classify`
+  - Body: `{ headerName: string, examples?: string[] }`
+  - Flow:
+    1) Sanear/truncar inputs.
+    2) Llamar `llm.classifyColumn(...)`.
+    3) Validar con zod; si falla → fallback heurístico.
+    4) Responder `{ type, confidence, rationaleShort }` (200).
+
+- `POST /api/assist/explain`
+  - Body: `{ issue: Issue }`
+  - Flow:
+    1) Sanear/truncar (no PII).
+    2) Llamar `llm.explainIssue(...)`.
+    3) Validar zod; fallback si error.
+    4) Responder `{ explanation, recommendation }` (200).
+
+- `POST /api/assist/rag`
+  - Body: `{ query: string }`
+  - Flow:
+    1) Sanear/truncar query.
+    2) `rag.search(query, RAG_TOP_K)`.
+    3) `rag.format(results)` → `{ answer, sources }`.
+    4) Responder 200.
+
+- (Opcional) `POST /api/assist/rules-assistant`
+  - Body: `{ instruction: string }`
+  - Flow:
+    1) Si `provider=mock`, devuelve 501 o una regla base; si proveedor real y `SEND_TO_LLM=true`, generar RuleSpec.
+    2) Validar con zod; fallback → error 422 (mejor que inventar).
+
+MANEJO DE ERRORES (coherente con lib/errors.ts)
+-----------------------------------------------
+- `VALIDATION_ERROR` (400) si falta `headerName|issue|query`.
+- `LLM_NOT_CONFIGURED` (501) si provider real sin API key o `SEND_TO_LLM=false` y `ALLOW_FALLBACK=false`.
+- `TIMEOUT` (504) si excede `LLM_TIMEOUT_MS` (usa `withTimeout`).
+- `INTERNAL_ERROR` (500) para errores no controlados (sin exponer stack en prod).
+
+OBSERVABILIDAD & TELEMETRÍA
+---------------------------
+- Logs pino por cada llamada assist:
+  - Campos: `provider`, `model`, `t_input` (ms), `t_total` (ms), `truncated=true|false`, `size_in`, `size_out`, `status`.
+- No loguear contenido sensible ni valores literales de celdas; en su lugar, hashes o longitudes.
+- Métricas (si ya tienes /metrics o export Prom): contador de requests por endpoint y latencia p95.
+
+RGPD Y GUARDRAILS
+-----------------
+- `SEND_TO_LLM=false` por defecto → **no** sale nada de la máquina a la nube.
+- Cuando `SEND_TO_LLM=true`:
+  - No incluir PII (enmascara o elimina campos sensibles).
+  - Truncar a `LLM_MAX_INPUT_CHARS`.
+  - Mostrar en UI (Prompt 8) el estado: “Modo IA externa activado”.
+- Documentar en `SEC_RGPD.md` la política de prompts y tratamiento.
+
+TESTS (Jest)
+------------
+- Unit (schemas/sanitize/utils):
+  - `schemas.spec.ts`: validar salidas mock y de muestras mal formateadas (simular JSON con ruido, comprobar fallback).
+  - `sanitize.spec.ts`: elimina o enmascara PII y respeta límites de longitud.
+  - `utils.spec.ts`: timeouts y reintentos.
+- Integración (routes/assist):
+  - `assist.classify.e2e.test.ts`: con `LLM_PROVIDER=mock`, `POST /api/assist/classify` → JSON válido.
+  - `assist.explain.e2e.test.ts` y `assist.rag.e2e.test.ts` con casos reales (RAG debe citar `/docs`).
+- (Opcional) Integration real (marcar con `it.skip` por defecto):
+  - Proveedor `gemini|openai|azure` con API key en CI local (no en público).
+
+SCRIPTS (package.json de /apps/api)
+-----------------------------------
+- `"dev:assist": "tsx watch src/routes/assist.ts"` (si quieres ejecutar parte)
+- `"test:assist": "jest src/routes/assist*.test.ts --runInBand"`
+- `"lint:ai": "eslint src/lib/llm/** src/lib/rag/**"`
+
+DOCUMENTACIÓN (docs/LLM.md)
+---------------------------
+- Añade secciones:
+  - **Arquitectura del driver** (diagrama simple de providers/mock).
+  - **Plantillas y versiones** (hash o versión de cada .md para trazabilidad).
+  - **Validación zod** y políticas de fallback.
+  - **RAG local**: cómo indexa, límites y rendimiento.
+  - **Env vars** y casos de ejemplo (curl a /api/assist/*).
+- Nota sobre seguridad: no PII en prompts; logs sin datos sensibles; truncado.
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- Con `LLM_PROVIDER=mock` y `SEND_TO_LLM=false`:
+  - `POST /api/assist/classify` → `{type, confidence, rationaleShort}` válido.
+  - `POST /api/assist/explain` → `{explanation, recommendation}` válido.
+  - `POST /api/assist/rag` → `{answer, sources}` citando `/docs`.
+- Cambiar a proveedor real (con API key y `SEND_TO_LLM=true`) no rompe contratos; si la respuesta sale fuera de esquema, se activa fallback con log de advertencia.
+- Tests unitarios e integración de `assist/*` pasan en local.
+- Documentación `LLM.md` actualizada, y referencias RGPD en `SEC_RGPD.md`.
+
+NOTAS FINALES
+-------------
+- Mantén el diseño “plug‑in/plug‑out”: otros prompts (7 reglas y 8 RGPD) se apoyan aquí.
+- Evita dependencias pesadas para RAG local; si añades embeddings, documenta su tamaño/memoria.
+- El objetivo es **consistencia**: la UI y la API no deben notar diferencia entre mock y proveedor real (gracias a la validación y fallback).
+
+FIN DEL PROMPT 6 — IA/LLM + RAG + GUARDRAILS
+---------------------------------------------
+PROMPT MAESTRO — 7. REGLAS NO‑CODE (Especificación, Motor, API, UI)
+====================================================================
+
+ROL / CONTEXTO
+--------------
+Actúas como equipo sénior full‑stack (Frontend + Backend + Data/ML + QA) para implementar el sistema de
+**Reglas No‑Code** de “AI Data Steward”. Debe permitir que usuarios no técnicos definan **validaciones**
+y **transformaciones** sobre datasets (p. ej., “teléfono España con +34 y 9 dígitos”, “precio > 0”, “normalizar moneda a EUR”),
+previsualizarlas (**diff**) y **aplicarlas** de forma **determinista** y **auditada**.
+
+ALCANCE
+-------
+1) **Especificación** de reglas (`RuleSpec`) en JSON (con opción de importar/exportar YAML).
+2) **Motor de ejecución** determinista en el servicio Python (**py-quality**) que:
+   - Evalúa reglas en modo **preview** (genera `FixPreview[]`) y **apply** (genera `FixResult` y archivo limpio).
+   - Puede generar **Issue[]** cuando una regla es “validadora”.
+3) **Persistencia** de reglas en BD (tabla `rules`) con **versionado** simple.
+4) **API** Node/TS:
+   - CRUD completo de reglas.
+   - Orquestación de `preview_fixes` y `apply_fixes` invocando py‑quality + reglas activas.
+5) **Editor visual** en la web:
+   - Listado, creación/edición/eliminación, validación de `spec`, **prueba** contra muestra del dataset.
+6) **Auditoría** de cambios (logs) y compatibilidad con RGPD (no enviar PII a IA cuando se generen reglas desde lenguaje natural).
+
+CONCEPTOS Y TIPOS
+-----------------
+- **Regla** = instrucción declarativa con **kind** (tipo), **spec** (parámetros), **severity** (impacto), y **modo**:
+  - Validación: si no se cumple, emite `Issue`.
+  - Transformación: si se cumple, propone/realiza `Fix`.
+- **Conflictos**: predomina el **orden** dado por el usuario (última gana) o por **prioridad** definida por `kind`.
+- **Idempotencia**: aplicar dos veces no debe producir cambios adicionales.
+
+ESPECIFICACIÓN RULESPEC (JSON canónico)
+---------------------------------------
+{
+  "id": "uuid",                 // generado por el sistema
+  "orgId": "uuid",              // organización propietaria
+  "name": "string",             // "Teléfono ES (+34 y 9 dígitos)"
+  "description": "string?",     // texto corto para humanos
+  "kind": "regex|numeric|date|map|phone_es|email|id_not_empty|price_gt0",
+  "mode": "validate|transform", // qué hace por defecto
+  "severity": "info|warn|error",
+  "enabled": true,
+  "priority": 100,              // menor número = más prioridad
+  "spec": {                     // parámetros por kind (ver más abajo)
+    // ...
+  },
+  "createdAt": "ISO-UTC",
+  "updatedAt": "ISO-UTC?"
+}
+
+PARÁMETROS POR KIND (ejemplos)
+------------------------------
+- regex:
+  {
+    "col": "email",
+    "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+    "flags": "i",
+    "onFail": "issue"           // issue|fix|null
+  }
+
+- numeric:
+  {
+    "col": "precio",
+    "op": ">=",
+    "value": 0,
+    "onFail": "issue"
+  }
+
+- date:
+  {
+    "col": "fecha",
+    "inputFormats": ["D/M/YYYY","YYYY-MM-DD","DD-MM-YY","YYYY/MM/DD"],
+    "output": "YYYY-MM-DD",
+    "onFail": "fix"             // normaliza si es posible; si no, issue
+  }
+
+- map:
+  {
+    "col": "moneda",
+    "map": { "€":"EUR", "euro":"EUR" },
+    "caseInsensitive": true,
+    "onMiss": "issue"           // si valor no está en el mapa
+  }
+
+- phone_es:
+  {
+    "col": "telefono",
+    "requireCountry": "+34",
+    "length": 9,
+    "normalize": true,          // produce "+34612345678"
+    "onFail": "fix"             // sugiere normalización
+  }
+
+- email:
+  {
+    "col": "email",
+    "onFail": "issue"
+  }
+
+- id_not_empty:
+  {
+    "col": "sku",
+    "autofill": "ID-{hash7}",   // si falta, proponer autollenado
+    "onFail": "fix"
+  }
+
+- price_gt0:
+  {
+    "col": "precio",
+    "onFail": "issue"
+  }
+
+MOTOR (PY‑QUALITY) — INTERFAZ Y COMPORTAMIENTO
+----------------------------------------------
+Ubicación: /services/py-quality/app/rules/engine.py
+
+Funciones clave:
+- `evaluate_preview(df, rules: list[RuleSpec], options) -> list[FixPreview]`
+- `evaluate_apply(df, rules: list[RuleSpec], options) -> FixResult`
+- `validate_only(df, rules) -> list[Issue]` (si el usuario elige “solo validar”)
+
+Notas de ejecución:
+- **Orden**: ordenar por `priority` ASC y, en empate, por `createdAt`.
+- **Scope de regla**: columna única (`spec.col`), salvo extensiones (p. ej., `map` global con varias cols).
+- **Transformaciones**: aplicar in‑memory en preview; en apply, persistir `clean.csv`/`clean.xlsx`.
+- **Explicaciones**: cada `FixPreview` lleva `explanation` breve derivada del `kind` y el valor detectado.
+- **Determinismo**: hashing y normalizaciones sin fuentes externas; seed fija para sampling.
+
+API PY‑QUALITY — NUEVOS CAMPOS
+------------------------------
+- `POST /preview_fixes`:
+  - Request amplía `InputSpec` con `rules: RuleSpec[]` (opc. `rulesFromDb=true` para que la API las obtenga según `orgId`).
+  - Response: `{ preview: FixPreview[], note?: string }`
+- `POST /apply_fixes`:
+  - Request como `InputSpec` + `rules`.
+  - Response: `FixResult` (applied, rejected, file_clean_path, summary).
+- Compatibilidad: si `rules` llega vacío, aplica reglas activas de BD señaladas por `orgId` (si se pasa).
+
+INTEGRACIÓN API NODE/TS (ORQUESTACIÓN)
+--------------------------------------
+Ubicación: /apps/api
+- `src/db/repo/rules.repo.ts` (ya creado en Prompt 5): asegura CRUD completo + listados por org y filtros `enabled`.
+- `src/domain/dto.ts` y `src/routes/`:
+  - `GET /api/rules` (query: orgId?, enabled?) → RuleSpec[].
+  - `POST /api/rules` → crear y devolver regla (id/createdAt).
+  - `PUT /api/rules/:id` → parchear `enabled`, `priority`, `spec`, etc. y actualizar `updatedAt`.
+  - `DELETE /api/rules/:id` → borrado duro (o suave con `enabled=false`).
+- `src/domain/services/fixes.service.ts`:
+  - Al invocar preview/apply:
+    1) resolver `rules`: si payload tiene `rules`, usarlas; si no, cargar activas de BD por orgId.
+    2) llamar a py‑quality y devolver tal cual al frontend.
+    3) registrar auditoría: `preview_fixes` / `apply_fixes`.
+- Validación zod en API para `RuleSpec`:
+  - Esquema zod que refleje el JSON canónico y los sub‑schemas por `kind`.
+- Seguridad:
+  - Sanitizar `spec` frente a objetos anómalos (evitar RE DoS con regex enormes: limitar longitud `pattern`, `flags` válidos).
+
+UI — EDITOR VISUAL DE REGLAS
+----------------------------
+Ubicación sugerida: /apps/web/src/pages/Reglas.tsx + componentes en `/apps/web/src/components/RulesEditor.tsx`
+
+Funcionalidades:
+- **Listado**:
+  - Tabla con name, kind, mode, severity, enabled, priority, createdAt.
+  - Paginación simple y búsqueda por nombre/kind.
+- **Crear/Editar**:
+  - Form con campos: name, description, kind (select), mode (validate/transform), severity, enabled, priority.
+  - Editor de `spec` (JSON) con:
+    - Área de texto monoespaciada o editor tipo monaco (si se permite).
+    - Botón **Validar** → zod en frontend que replica el schema del backend.
+    - Cambio a **YAML** opcional (conversión bi‑direccional JSON↔YAML).
+- **Probar**:
+  - Selector de dataset (o input del id actual).
+  - Botón **Previsualizar** → POST `/api/datasets/:id/fixes/preview` con las reglas del formulario (sin guardar todavía).
+  - Render **DiffViewer** con `FixPreview[]`.
+- **Guardar / Duplicar / Eliminar**:
+  - Guardar = POST/PUT; duplicar clona con `name` + “(copia)” y nueva `id`; eliminar pide confirmación.
+- **Importar/Exportar**:
+  - Exporta reglas seleccionadas como JSON/YAML.
+  - Importa archivo y **valida** antes de hacer POST.
+
+UX / A11Y
+---------
+- Indicar con chips el `kind` y `mode` de cada regla.
+- Ayudas contextuales (tooltip) que describan qué hace cada `kind`.
+- Errores de validación visibles bajo el editor; no bloquear el resto de la UI.
+- Teclado y focus bien gestionados; aria‑labels en botones de probar/guardar.
+
+VERSIONADO Y CONFLICTOS
+-----------------------
+- En BD, conserva `createdAt` y `updatedAt`; opcionalmente `version` (int).
+- Política de conflictos:
+  - **Orden de ejecución** por `priority ASC` y después `createdAt ASC`.
+  - Si dos reglas proponen cambios distintos sobre la **misma celda**:
+    - Si ambas son **transform**: gana la de **mayor prioridad** (menor número). La otra se marca como “omisa” en resumen.
+    - Si una es **validate** y otra **transform**: aplicar transform y **mantener** el issue como warning si sigue incumpliendo.
+  - Devuelve en `FixResult.summary` un recuento de conflictos resueltos.
+
+PERFORMANCE Y LÍMITES
+---------------------
+- Preview:
+  - Limitar a **N filas** (100 por defecto) para datasets grandes.
+  - Indicar en respuesta `note: "Preview truncado a 100 filas"`.
+- Apply:
+  - Ejecutar por **lotes** si supera X filas (ej. 50k).
+  - Evitar copias innecesarias del DataFrame; transformar columnas in‑place cuando sea seguro.
+
+AUDITORÍA
+---------
+- Acciones registradas en `logs_audit`:
+  - create_rule, update_rule, delete_rule, preview_fixes, apply_fixes.
+- `meta` del log debe incluir `ruleId` (o lista), `datasetId` cuando aplique y conteos clave.
+
+TESTS (UNIT/INTEGRACIÓN/E2E)
+----------------------------
+1) **py-quality (pytest)**:
+   - Cada operador (regex, numeric, date, map, phone_es, email, id_not_empty, price_gt0) con casos positivos/negativos.
+   - `evaluate_preview` y `evaluate_apply`: previsualización y aplicación coherentes; idempotencia en apply.
+   - Conflictos: dos reglas sobre la misma celda → gana prioridad.
+
+2) **API (Jest + Supertest)**:
+   - CRUD de reglas (create/read/update/delete) con validación zod.
+   - `POST /api/datasets/:id/fixes/preview`: con reglas en payload y con reglas de BD (orgId).
+   - Manejo de errores: spec inválido, regex demasiado larga, kind desconocido.
+
+3) **WEB (Vitest + RTL + MSW)**:
+   - `RulesEditor`: validación de JSON/YAML, mensajes de error, guardado correcto.
+   - `Reglas` page: listar, filtrar, crear, editar, eliminar, **probar** contra muestra (MSW).
+   - `DiffViewer`: render de before/after y conteo de cambios.
+
+4) **E2E (Playwright) — preparado**:
+   - Flujo: ir a “Reglas” → crear `phone_es` → validar → probar contra dataset demo → ver diff → guardar → volver a probar → aplicar desde la página del dataset.
+
+SEGURIDAD Y RGPD
+----------------
+- No permitir expresiones `regex` con longitud desmesurada o flags no permitidos.
+- Limitar tamaño de `map` y profundidad del JSON de `spec`.
+- En UI, **no** mostrar datos sensibles de celdas completas en explicaciones: truncar valor o enmascarar si aplica.
+- Si la creación de reglas nace de lenguaje natural (Prompt 6, /assist/rules‑assistant):
+  - **No** enviar PII al LLM; filtrar columnas sensibles; usar prompts con instrucciones de minimización.
+  - Validar siempre el JSON devuelto por el LLM con zod; si falla, rechazar (422) y ofrecer plantilla base segura.
+
+MIGRACIONES Y SEEDS
+-------------------
+- Si aún no existe, asegurar tabla `rules` (Prompt 5).
+- `make seed` debe añadir 2 reglas base por defecto:
+  - `phone_es` (validate+transform) sobre `telefono`.
+  - `price_gt0` (validate) sobre `precio`.
+- Añadir ejemplos en `docs/RULES.md` para cada `kind`.
+
+DOCUMENTACIÓN
+-------------
+- `docs/RULES.md`:
+  - Especificación canónica de `RuleSpec` y parámetros por `kind`.
+  - Ejemplos de JSON y YAML.
+  - Política de conflictos y prioridad.
+  - Ejemplos de **preview** y **apply** con capturas/fragmentos.
+- `docs/API.md`:
+  - Actualizar contratos de `/api/rules*`, `/api/datasets/:id/fixes/preview` y `/apply`.
+- `docs/ARCH.md`:
+  - Diagrama del flujo “UI → API → py‑quality → Archivo limpio/Issues”.
+
+SCRIPTS Y COMANDOS
+------------------
+- `pnpm --filter @{{ORG_NAME}}/api test` → pruebas de API (incluidas rutas de rules y preview).
+- `pytest` en `/services/py-quality` → pruebas de motor.
+- `pnpm --filter @{{ORG_NAME}}/web test` → pruebas de RulesEditor y páginas relacionadas.
+- `make seed` → reglas base creadas y visibles en la UI.
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- El usuario puede **crear/editar/eliminar** reglas desde la UI y **probar** contra un dataset real antes de guardar/aplicar.
+- `preview_fixes` devuelve un **diff** coherente y explicable; `apply_fixes` genera un archivo limpio con **idempotencia**.
+- Persistencia en BD funcional, con `enabled`, `priority`, `mode`, `severity` y `spec` completos.
+- Auditoría registra eventos clave; la UI muestra errores/validaciones de forma clara.
+- Documentación `RULES.md` y `API.md` actualizada; seeds con 2 reglas base operativas.
+
+NOTAS FINALES
+-------------
+- Mantén el motor de reglas **simple** y **determinista**; cualquier lógica compleja debe residir en el servicio de calidad/IA.
+- Diseña `RuleSpec` para **evolucionar** (añadir nuevos `kind` sin romper contratos).
+- Garantiza que la UI y la API no dependan del proveedor LLM: el sistema de reglas **no** necesita IA para funcionar.
+- Optimiza para “fallar seguro”: si una regla está mal definida, recházala y guía al usuario con mensajes precisos.
+
+PROMPT MAESTRO — 8. SEGURIDAD & RGPD (Privacidad, Retención, Borrado, Auditoría, Básicos de AppSec)
+====================================================================================================
+
+ROL / CONTEXTO
+--------------
+Eres el responsable de Seguridad + Protección de Datos del proyecto “AI Data Steward”.
+Tu misión es implementar los **controles mínimos de seguridad y privacidad** (RGPD), dejando:
+- Textos y flujos de **consentimiento** en UI.
+- **Minimización** y **guardrails** efectivos (no PII al LLM sin bandera explícita).
+- **Retención y purga** automatizada.
+- **Borrado bajo demanda** y **auditoría** (quién hizo qué, cuándo).
+- **Cabeceras de seguridad**, **rate limiting**, **CORS** restrictivo, **CSP** razonable.
+- Tests de todo lo anterior (unit, integración, e2e) y documentación.
+
+ALCANCE
+-------
+- Backend/API (Fastify TS): Endpoints, colas/cron, seguridad HTTP, auditoría y logs.
+- Servicio Python (py-quality): sin PII persistente y saneado de ficheros temporales.
+- Frontend (Vite React): consentimientos/avisos y controles UI visibles.
+- Documentación en `/docs/SEC_RGPD.md` y actualizaciones menores en `/docs/API.md` y `/docs/ARCH.md`.
+
+NUEVAS VARIABLES DE ENTORNO (añade en /apps/api/src/config/env.ts y .env.example)
+----------------------------------------------------------------------------------
+- SEND_TO_LLM=false            # guardrail por defecto; si false, no sale nada a IA externa
+- LLM_PROVIDER=mock            # ya existente; mantener mock si no hay consentimiento
+- RETENTION_DAYS=30            # días hasta purga automática de datasets/archivos
+- REGION=EU                    # usado en banners y textos
+- PRIVACY_BANNER=true          # mostrar aviso/consentimiento en UI
+- EXPORT_ALLOW_SHEETS=false    # evita conectores cloud por defecto
+- ENABLE_PURGE_CRON=true       # si true, habilita job diario
+- API_BASE_URL=http://localhost:8080  # usado por web para enlaces legales/descargas
+- CSP_REPORT_ONLY=false        # si true, activa modo report-only para CSP al inicio
+
+MODELO DE DATOS: AUDITORÍA (si no está ya)
+------------------------------------------
+Asegura tabla `logs_audit` (Prompt 5):
+- Campos: id (uuid), user_id (uuid|null), action (text), target (text|null), meta (jsonb), created_at (timestamptz).
+- Acciones: 
+  `upload_dataset`, `create_rule`, `update_rule`, `delete_rule`, `preview_fixes`, `apply_fixes`, `export`, `delete_dataset`, `purge_dataset`, `consent_accept`, `consent_revoke`, `privacy_update`.
+
+PLAN TÉCNICO POR CAPAS
+----------------------
+A) Backend/API — Seguridad HTTP y AppSec básica
+B) Backend/API — Retención, borrado y auditoría
+C) Backend/API — Minimizaciones para IA y DLP leve
+D) Servicio Python — Temp files, saneado y no-PII
+E) Frontend — Consentimiento/avisos, privacidad visible y flujos de borrado
+F) Documentación y pruebas
+
+A) BACKEND/API — Seguridad HTTP y AppSec básica
+-----------------------------------------------
+Ubicación: /apps/api
+
+1) **Helmet/CSP/Headers**:
+   - Usa `@fastify/helmet` activado por defecto.
+   - CSP inicial (equilibrada para Vite dev/prod):
+     - default-src 'self';
+     - script-src 'self' 'unsafe-inline' blob:;
+     - style-src 'self' 'unsafe-inline';
+     - img-src 'self' data:;
+     - connect-src 'self' http://localhost:8080 http://localhost:5173;
+     - frame-ancestors 'none';
+     - base-uri 'self';
+     - upgrade-insecure-requests (en prod).
+   - Si `CSP_REPORT_ONLY=true`, activa report-only y ruta `POST /csp-report` que solo registre auditablemente.
+
+2) **CORS**:
+   - `@fastify/cors` con orígenes explícitos:
+     - Dev: `http://localhost:5173`
+     - Prod: usar `ALLOWED_ORIGINS` si lo añades (coma-separado).
+   - Métodos: GET, POST, PUT, DELETE. Credenciales: false por defecto.
+
+3) **Rate Limiting**:
+   - `@fastify/rate-limit`: 100 req/min/IP en dev; parametriza con `RATE_LIMIT_MAX`.
+   - Responder con 429 y cabeceras informativas.
+
+4) **Body & Multipart Limits**:
+   - Tamaño máximo por upload (ej. 25 MB) con configuración en fastify-multipart.
+
+5) **Validación**:
+   - Reutiliza Zod para validar body/query/params en rutas sensibles (delete/purge/apply/export/assist).
+
+6) **Error Handler**:
+   - No exponer stack en prod. Dev sí (controlado por `NODE_ENV`).
+   - Estructura: { statusCode, code, message, details? }
+
+7) **Secretos y claves**:
+   - Ninguna clave en el repo. Solo env.
+   - Añade en README referencia a `.env` gestionado por secret manager en despliegue real (Vault/KeyVault/Secrets Manager).
+
+8) **Registro de versión**:
+   - `GET /version` (si no existe): { version, commit } para diagnósticos.
+
+B) BACKEND/API — Retención, borrado y auditoría
+-----------------------------------------------
+1) **Purgado automático**:
+   - Job diario (cron) si `ENABLE_PURGE_CRON=true`.
+   - Selección: datasets con `created_at < now() - RETENTION_DAYS`.
+   - Pasos:
+     a) Seleccionar ids; 
+     b) Borrar issues/fixes/exports (cascade); 
+     c) Borrar dataset; 
+     d) Eliminar carpetas en `STORAGE_DIR/datasets/<id>`; 
+     e) Registrar log_audit: `purge_dataset` con { count, retentionDays }.
+   - Implementa en `src/jobs/purge.ts` + registro en `src/lib/queue.ts` (si ya tienes BullMQ, crea repeatable job) o con un cron interno ligero si prefieres.
+
+2) **Borrado bajo demanda**:
+   - Endpoint: `DELETE /api/datasets/:id`:
+     - Verifica existencia (404 si no).
+     - Transacción: borra relaciones; purga almacenamiento.
+     - Respuesta `{ deleted: true }`.
+     - `logs_audit`: action `delete_dataset` con { datasetId }.
+   - UI debe pedir confirmación explícita (doble confirmación: escribir “BORRAR”).
+
+3) **Auditoría**:
+   - Crea helper `audit(action: string, target?: string, meta?: Record<string, any>, userId?: string|null)` en `src/lib/audit.ts`.
+   - Incluirlo en:
+     - Upload dataset (fin de upload).
+     - Create/Update/Delete rule.
+     - Preview/Apply fixes.
+     - Export.
+     - Consentimientos (desde Web, ver más abajo).
+   - No guardar PII en `meta`: usa ids, contadores, hashes o longitudes.
+
+4) **Export**:
+   - Si `EXPORT_ALLOW_SHEETS=false`, el endpoint de Sheets debe devolver 501, y la UI mostrar aviso de que requiere integración explícita.
+
+C) BACKEND/API — Minimizaciones para IA y DLP leve
+--------------------------------------------------
+1) **Guardrail IA**:
+   - `SEND_TO_LLM=false` por defecto.
+   - Si `SEND_TO_LLM=true`, utiliza ya el `sanitize.ts` (Prompt 6) para:
+     - Eliminar columnas sensibles (dni/nif, iban/tarjeta, dirección, email, teléfono) o **enmascararlas** según caso de uso.
+     - Truncado a `LLM_MAX_INPUT_CHARS`.
+   - Rechaza peticiones a `assist/*` que pretendan enviar celdas completas con PII: responde 400 con `code="PII_NOT_ALLOWED"` y mensaje claro.
+
+2) **DLP leve**:
+   - Patrones básicos (regex) para IBAN, tarjetas, DNI/NIF/NIE, emails, teléfonos:
+     - Si detectas en prompts, aplicar enmascarado a “****” excepto últimas 2–4 cifras cuando aplique.
+
+3) **Logs**:
+   - No loguear payloads de datos. Solo tamaños, hashes, contadores.
+
+D) SERVICIO PYTHON — Temp files, saneado y no-PII
+-------------------------------------------------
+Ubicación: /services/py-quality
+1) **Directorio temporal** configurable `QUALITY_TMP_DIR` (env). Asegura que:
+   - Se crea si no existe con permisos apropiados.
+   - Se **borra** contenido tras `apply_fixes` si `KEEP_TMP=false` (añade variable si quieres).
+2) **Lectura/escritura**:
+   - No guardar más allá de lo necesario: `clean.csv` sólo cuando se pide aplicar; previews en memoria.
+   - Elimina ficheros huérfanos (tarea auxiliar en arranque o por cron ligero).
+3) **Sin PII**:
+   - No escribir en logs valores de celdas; sólo conteos o ejemplos truncados/anonimizados.
+4) **Errores**:
+   - Respuestas 4xx/5xx sin trazar celdas. Usa referencias por fila/columna.
+
+E) FRONTEND — Consentimiento, avisos, privacidad visible y flujos
+-----------------------------------------------------------------
+Ubicación: /apps/web
+
+1) **Banner/Modal de consentimiento** (si `PRIVACY_BANNER=true`):
+   - Texto breve (en `/src/copy/privacy.es.ts`):
+     “Usaremos tus datos para limpiar, validar y estandarizar tus archivos. Por defecto, NO enviamos datos a IA externa. Puedes cambiarlo en Ajustes.”
+   - Botones: “Aceptar y continuar”, “Configurar”.
+   - Al aceptar:
+     - Guardar en localStorage `consent.acceptedAt`.
+     - Enviar a API `POST /api/consent` → `logs_audit: consent_accept`.
+   - Botón “Configurar” abre panel con:
+     - Toggle “Permitir IA externa (Gemini/OpenAI/Azure)” → `SEND_TO_LLM`.
+     - Aviso claro: “Si lo activas, **no** enviaremos PII; aplicaremos enmascarados y truncado.”
+
+2) **Página “Privacidad” (/privacidad)**:
+   - Resumen en lenguaje llano: finalidades, base legal, retención (`RETENTION_DAYS`), región (`REGION`), derechos ARCO-POL (acceso, rectificación, cancelación/borrado, oposición, portabilidad, limitación).
+   - Información de contacto (placeholder).
+   - Enlace a descarga de **política en PDF** si quieres (generada más tarde).
+
+3) **Indicadores de estado**:
+   - En el footer o en la pantalla de Assist:  
+     “IA externa: DESACTIVADA (modo seguro)” o “IA externa: ACTIVADA (sin PII)”.
+
+4) **Flujos de borrado**:
+   - En `DatasetDetail/ExportTab`: botón **Eliminar dataset** con doble confirmación (escribir “BORRAR”).
+   - Mensajes claros post acción.
+
+5) **UI para retención**:
+   - En `Dashboard`: card “Retención: {{RETENTION_DAYS}} días. La purga es automática.”.
+
+6) **Accesibilidad**:
+   - Banners y modales con enfoque de teclado, `aria-live="polite"` para avisos.
+
+F) DOCUMENTACIÓN Y PRUEBAS
+--------------------------
+1) **/docs/SEC_RGPD.md** (actualiza con secciones):
+   - Principios aplicados (licitud, finalidad, minimización, exactitud, limitación, integridad/confidencialidad, accountability).
+   - Base legal típica (ejecución de contrato/consentimiento) — texto base, editable para cliente real.
+   - Mapa de datos: qué se guarda en BD vs. storage; dónde; por cuánto tiempo.
+   - Retención/purga: cómo funciona el cron, logs y auditoría.
+   - Borrado bajo demanda: endpoint, UI y qué se elimina.
+   - IA y RAG: políticas de prompts, SEND_TO_LLM, sanitización, truncado, no PII.
+   - Seguridad de app: headers, CSP, rate limiting, errores, secretos.
+   - Roles y permisos (si procede; mínimo: admin/editor/viewer de la tabla `users`).
+   - Riesgos conocidos y mitigaciones (DoS por upload grande, regex DoS, etc.).
+
+2) **/docs/API.md**:
+   - Añade endpoints: 
+     - `DELETE /api/datasets/:id` (borrado)
+     - `POST /api/consent` (auditoría) — body `{ acceptedAt: ISOString }`
+     - (Opc.) `POST /csp-report` si activas Report-Only
+   - Respuestas de error y códigos (429 rate-limit, 400 PII_NOT_ALLOWED, 501 EXPORT/SEND_TO_LLM bloqueado, etc.).
+
+3) **/docs/ARCH.md**:
+   - Diagrama con el job de purga y rutas de borrado.
+
+TESTS (añade y/o amplía)
+------------------------
+API (Jest + Supertest):
+- **Borrado**: crear dataset dummy, `DELETE /api/datasets/:id` → 200 `{deleted:true}`, y comprobar no existencia en BD y storage.
+- **Purga**: insertar dataset con `created_at` antiguo → ejecuta el job de purga (exponlo vía función invocable en test) → dataset eliminado y audit log `purge_dataset`.
+- **Audit**: tras `POST /api/consent`, existe registro con action `consent_accept`.
+- **Guardrails IA**: `POST /api/assist/explain` con `SEND_TO_LLM=false` y provider real: 501 o fallback claro. Con PII evidente en payload → 400 `PII_NOT_ALLOWED`.
+
+PY (pytest):
+- **Temp files**: tras `apply_fixes`, si `KEEP_TMP=false`, carpeta de tmp del dataset queda limpia.
+- **Sin PII**: logs no contienen valores literales (testea por patterns).
+
+WEB (Vitest + RTL + MSW):
+- **Banner de privacidad**: render si `PRIVACY_BANNER=true`, aceptar persiste y llama a `/api/consent`.
+- **Botón IA externa**: toggle refleja el estado y muestra aviso.
+- **Eliminar dataset**: doble confirmación y llamada a `DELETE /api/datasets/:id` con UI actualizada.
+
+E2E (Playwright) – preparado:
+- Flujo: abrir Home → aceptar consentimiento → subir CSV → ir a dataset → eliminar dataset → volver a Dashboard y ver que ya no está.
+- Otro flujo: dejar dataset “caducado” (seed e2e) → ejecutar purga → comprobaremos vía API/UI.
+
+ENTREGABLES ESPERADOS (ARCHIVOS)
+--------------------------------
+- **API**:
+  - `src/plugins/security.ts` (helmet, cors, rate-limit, csp, body limits)
+  - `src/routes/privacy.ts`: `POST /api/consent` (auditable)
+  - `src/routes/datasets.delete.ts`: `DELETE /api/datasets/:id`
+  - `src/jobs/purge.ts`: job diario/función invocable + registro en `lib/queue.ts` o cron interno
+  - `src/lib/audit.ts`: helper `audit(...)`
+  - Ajustes en `src/lib/llm/sanitize.ts` (si faltan patrones DLP leves)
+- **PY-QUALITY**:
+  - `app/cleanup.py` (auxiliar opcional) y ajustes en escritura/lectura tmp
+- **WEB**:
+  - `src/pages/Privacidad.tsx` + `src/copy/privacy.es.ts`
+  - `src/components/PrivacyBanner.tsx`
+  - Cambios en `DatasetDetail/ExportTab.tsx` (botón eliminar con confirmación)
+  - Indicadores de estado de IA externa
+- **DOCS**:
+  - `/docs/SEC_RGPD.md` actualizado
+  - `/docs/API.md` y `/docs/ARCH.md` con lo anterior
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- UI muestra consentimiento y estado de IA externa (desactivada por defecto).
+- `DELETE /api/datasets/:id` borra datos y archivos asociados y registra auditoría.
+- Job de purga elimina datasets caducados y registra auditoría; configurable por `RETENTION_DAYS`.
+- IA externa no se usa si `SEND_TO_LLM=false`; en caso de intento, se obtiene 501 o fallback claro.
+- Sanitización DLP leve operativa: no se envía PII a LLM; se enmascara.
+- Seguridad HTTP activa: CORS restringido, Helmet/CSP, rate limiting, body limits.
+- Tests (API, PY, WEB) pasan y la documentación refleja fielmente el comportamiento.
+
+NOTAS FINALES
+-------------
+- Mantén CSP realista en dev (puede requerir 'unsafe-inline' para estilo/inline de Vite; documenta la diferencia con prod).
+- Evita logs verbosos en prod; mantén niveles por env.
+- Este prompt sienta las bases de **cumplimiento y seguridad**; en despliegues reales, añade:
+  - Backups cifrados y política de retención de backups.
+  - Rotación de secretos y KMS.
+  - Detección de anomalías y alertas (SIEM).
+  - DPIA/ROPA internas y formación mínima de usuarios.
+
+FIN DEL PROMPT 8 — SEGURIDAD & RGPD
+------------------------------------
+
+PROMPT MAESTRO — 9. TESTING & CI/CD (Unit, Integración, E2E, Cobertura, Pipelines)
+===================================================================================
+
+ROL / CONTEXTO
+--------------
+Eres el Líder de QA/DevOps del proyecto “AI Data Steward”. Tu objetivo es instrumentar un
+sistema de pruebas sólido (unit/integración/E2E), con cobertura mínima establecida, y una
+pipeline reproducible en GitHub Actions, todo ello integrando los módulos existentes:
+- /apps/api (Fastify + TS)
+- /services/py-quality (FastAPI + pandas)
+- /apps/web (Vite + React + TS)
+
+El resultado debe permitir:
+1) Ejecutar pruebas rápidamente en local con `make test` (unit+integ) y `make test-e2e`.
+2) Ejecutar la CI en GitHub Actions con jobs separados (lint, unit/integ, e2e, build).
+3) Publicar artefactos de cobertura y evidencias (screenshots/videos E2E) en fallos.
+
+OBJETIVOS Y UMBRALES DE CALIDAD
+-------------------------------
+- Cobertura mínima:
+  - **API (Node/TS)**: ≥ 80% líneas/funciones/branches
+  - **Servicio Python**: ≥ 80% líneas/branches
+  - **Web (React/TS)**: ≥ 75% líneas
+- Estabilidad:
+  - Tests deterministas, sin flaky. Tiempos razonables.
+- Rapidez de feedback:
+  - `make test` ejecuta unit+integración sin levantar todo el stack e2e.
+  - E2E sólo cuando se solicite (`make test-e2e`) o en el job dedicado de CI.
+
+TOOLING Y LIBRERÍAS
+-------------------
+- **API** (/apps/api):
+  - Jest + ts-jest (o tsx + jest), Supertest para HTTP.
+  - NYC o Jest coverage para cobertura (lcov y text-summary).
+- **PY** (/services/py-quality):
+  - pytest, pytest-asyncio (si lo usas), httpx para cliente, coverage.py.
+- **WEB** (/apps/web):
+  - Vitest + @testing-library/react + @testing-library/user-event.
+  - MSW (Mock Service Worker) para mocks HTTP.
+- **E2E** (monorepo):
+  - Playwright (Chromium headless).
+  - Docker Compose para levantar stack real en CI y local (cuando se quiera E2E).
+
+ESTRUCTURA DE PRUEBAS (RUTAS Y FICHEROS)
+----------------------------------------
+/apps/api
+  ├─ jest.config.ts
+  ├─ tsconfig.jest.json              # si separas config para tests
+  ├─ src/
+  │   └─ ...                         # código de la API
+  └─ tests/
+      ├─ unit/
+      │   ├─ env.spec.ts             # parse de env, defaults, fallos
+      │   ├─ errors.spec.ts          # formateo, setErrorHandler
+      │   ├─ validation.spec.ts      # zod helpers, dto y parseos
+      │   └─ llm.sanitize.spec.ts    # sanitización/PII (Prompt 6)
+      ├─ integration/
+      │   ├─ health.e2e.spec.ts      # GET /health /ready
+      │   ├─ upload.e2e.spec.ts      # POST /api/upload + GET dataset
+      │   ├─ issues.e2e.spec.ts      # GET /api/datasets/:id/issues (mock/py)
+      │   ├─ fixes.e2e.spec.ts       # preview/apply (mock o py si está)
+      │   └─ rules.crud.e2e.spec.ts  # GET/POST/PUT/DELETE /api/rules
+      └─ assist/
+          ├─ classify.e2e.spec.ts    # /api/assist/classify (mock)
+          └─ explain.e2e.spec.ts     # /api/assist/explain (mock)
+
+/services/py-quality
+  ├─ pytest.ini
+  ├─ tests/
+  │   ├─ test_health.py
+  │   ├─ test_infer_unit.py
+  │   ├─ test_issues_unit.py
+  │   ├─ test_fixes_preview_unit.py
+  │   ├─ test_apply_integration.py
+  │   └─ rules/
+  │       ├─ test_regex_rule.py
+  │       ├─ test_numeric_rule.py
+  │       ├─ test_date_rule.py
+  │       ├─ test_map_rule.py
+  │       ├─ test_phone_es_rule.py
+  │       ├─ test_email_rule.py
+  │       ├─ test_id_not_empty_rule.py
+  │       └─ test_price_gt0_rule.py
+  └─ coverage/ (salida en CI)
+
+/apps/web
+  ├─ vitest.config.ts
+  ├─ src/
+  │   ├─ __tests__/
+  │   │   ├─ Uploader.spec.tsx
+  │   │   ├─ IssuesTable.spec.tsx
+  │   │   ├─ DiffViewer.spec.tsx
+  │   │   ├─ RulesEditor.spec.tsx
+  │   │   ├─ ChatbotPanel.spec.tsx
+  │   │   └─ router.spec.tsx
+  │   └─ mocks/
+  │       ├─ handlers.ts
+  │       └─ server.ts
+  └─ coverage/ (salida en CI)
+
+/e2e
+  ├─ playwright.config.ts
+  ├─ tests/
+  │   ├─ flow_upload_preview_apply.spec.ts
+  │   └─ flow_rules_create_preview_apply.spec.ts
+  └─ artifacts/ (screenshots/videos cuando falle)
+
+CONEXIÓN A LA BD EN PRUEBAS
+---------------------------
+- API (Prisma) usará una **BD de test** (`DATABASE_URL_TEST`) distinta de la de desarrollo:
+  - `postgres://postgres:postgres@localhost:5432/stewarddb_test`
+- Antes de los tests de integración:
+  - Ejecutar `prisma migrate deploy` o `prisma migrate reset --force --skip-seed` (y luego `db:seed` si lo necesitas).
+- Aislamiento:
+  - Ejecuta los tests de integración de API **en serie** (`--runInBand`) si reutilizan la misma BD para evitar condiciones de carrera.
+- Limpieza:
+  - Tras cada suite, truncar tablas o hacer `migrate reset` (más lento, pero más limpio). Documenta la estrategia elegida.
+
+PREPARACIÓN DE FIXTURES Y DATOS
+-------------------------------
+- Reutiliza `/datasets/samples` para fixtures (clientes_sucios.csv, ventas_sucias.csv, inventario_sucio.csv).
+- Seeds de BD (Prompt 5):
+  - 1 org “DemoLab”
+  - 1 usuario admin
+  - 1 proyecto “Demo Project”
+  - 2 reglas base (`phone_es`, `price_gt0`)
+  - 1 dataset demo (opcional, o créalo en cada test para aislar)
+- Para web, usa **MSW** para mockear la API en unit/integración del front.
+
+CONFIGURACIONES DE TEST — API (Jest)
+------------------------------------
+- jest.config.ts:
+  - `preset: 'ts-jest'` o ejecuta con tsx (recomendado por simplicidad).
+  - `testEnvironment: 'node'`
+  - `setupFilesAfterEnv`: script que:
+    - Cargue `.env.test` si lo tienes.
+    - Arranque mocks necesarios.
+  - `coverageReporters`: ['lcov', 'text-summary']
+  - `collectCoverageFrom`: ['src/**/*.{ts,tsx}', '!src/**/types.*', '!src/**/dto.*']
+- Scripts package.json (/apps/api):
+  - `"test": "jest --runInBand --detectOpenHandles"`
+  - `"test:unit": "jest tests/unit --runInBand"`
+  - `"test:integ": "jest tests/integration --runInBand"`
+  - `"test:assist": "jest tests/assist --runInBand"`
+  - `"coverage": "jest --coverage"`
+
+CONFIGURACIONES DE TEST — PY (pytest)
+-------------------------------------
+- `pytest.ini`:
+  - `addopts = -q --maxfail=1 --disable-warnings --cov=app --cov-report=term-missing --cov-report=xml`
+- Recomendación:
+  - Si usas httpx para llamar a FastAPI en integración, arranca la app en modo test (TestClient).
+- Scripts:
+  - `"test": "pytest -q"` en Makefile (target de py) o directamente en la raíz del servicio.
+
+CONFIGURACIONES DE TEST — WEB (Vitest)
+--------------------------------------
+- `vitest.config.ts`:
+  - `test.environment = 'jsdom'`
+  - `test.setupFiles = ['./src/mocks/server.ts']` (MSW)
+  - `coverage.reports = ['lcov', 'text-summary']`
+- Scripts package.json (/apps/web):
+  - `"test": "vitest --run --coverage"`
+  - `"test:watch": "vitest"`
+
+PLAYWRIGHT E2E
+--------------
+- playwright.config.ts:
+  - `use: { headless: true, screenshot: 'only-on-failure', video: 'retain-on-failure' }`
+  - `timeout`: 60–90 s por test (ajústalo si hace falta).
+- Escenarios recomendados:
+  1) **flow_upload_preview_apply.spec.ts**
+     - Levantar stack con `docker-compose up -d` (postgres/redis/api/web/py si lo incluyes).
+     - Esperar readiness (`/health` de API y `/health` de py-quality si lo usas).
+     - Navegar a `/usuario` → subir `clientes_sucios.csv` → redirigir a `/datasets/:id`.
+     - Ver Issues (≥ 5), ir a “Preview Fixes”, aplicar, descargar limpio y validar (p. ej., contiene `@mail.com` normalizado).
+  2) **flow_rules_create_preview_apply.spec.ts**
+     - Ir a `/reglas` → crear `phone_es` si no existe → validar `spec` → previsualizar contra dataset demo → ver diffs → guardar → volver a dataset → aplicar y verificar.
+
+SCRIPTS Y MAKEFILE (RAÍZ DEL MONOREPO)
+--------------------------------------
+- Makefile:
+  - `test`: ejecuta unit+integración (API + PY + WEB) **sin** E2E:
+    - `pnpm --filter @{{ORG_NAME}}/api test`
+    - `pnpm --filter @{{ORG_NAME}}/web test`
+    - `(cd services/py-quality && pytest -q)`
+  - `test-api`: sólo API
+  - `test-py`: sólo Python
+  - `test-web`: sólo Web
+  - `test-e2e`:
+    - `docker compose -f docker-compose.yml up -d --build`
+    - esperar readiness (curl a /health) con reintentos
+    - `pnpm --filter @e2e playwright test`
+    - `docker compose down -v`
+  - `ci`: pipeline local que ejecuta los mismos pasos que CI
+
+PIPELINE DE GITHUB ACTIONS (.github/workflows/ci.yml)
+-----------------------------------------------------
+- Dispara en `pull_request` y `push` a main.
+- Jobs:
+  1) **lint**:
+     - `pnpm i -w`
+     - ESLint + Prettier check + TypeScript typecheck (web y api).
+  2) **test-api**:
+     - Servicios: `postgres`, `redis`.
+     - `pnpm i -w`
+     - Set `DATABASE_URL` a stewarddb_test; `prisma migrate deploy` + `db:seed`.
+     - Ejecutar Jest unit+integración.
+     - Subir cobertura (lcov) como artifact.
+  3) **test-py**:
+     - Instalar Python 3.10+, pip cache.
+     - `pip install -r requirements.txt`
+     - Ejecutar pytest con coverage XML; subir artifact.
+  4) **test-web**:
+     - `pnpm i -w`
+     - Ejecutar Vitest con coverage; subir artifact.
+  5) **e2e**:
+     - `services`: usar `docker compose` o `services` de Actions para Postgres/Redis y levantar API/WEB con `pnpm` y `&`.
+     - Instalar Playwright (navegadores).
+     - Esperar readiness y correr `playwright test`.
+     - Subir `playwright-report` (html), screenshots y videos como artifacts.
+  6) **build**:
+     - Compilar Web y API.
+- Caching:
+  - Node (pnpm), Python (pip), Playwright browsers (opcional).
+- Publicación de resultados:
+  - `actions/upload-artifact` para coverage lcov, cobertura XML, y reporte e2e.
+
+ESTRATEGIA CONTRA TESTS INESTABLES (FLAKY)
+------------------------------------------
+- E2E:
+  - Siempre **espera readiness** (reintentos con backoff) antes de la primera navegación.
+  - Usa selectores robustos (role/nombre accesible) en lugar de ids frágiles.
+  - Evita dependencias de reloj (si necesitas timeouts, usa `await expect(...).toBeVisible()` con timeout razonable).
+- Unit/Integración:
+  - Ejecuta API con test DB limpia por suite.
+  - Mock explícito de red/FS donde sea posible.
+
+REPORTE DE COBERTURA Y ANÁLISIS
+-------------------------------
+- API: `coverage/lcov.info` + resumen en consola para quick feedback.
+- PY: `coverage.xml` (compatible con muchas herramientas).
+- WEB: `coverage/lcov.info`.
+- (Opcional) Integra Codecov/Sonar a futuro; por ahora mantén artifacts en Actions.
+
+SEGURIDAD Y CALIDAD ADICIONALES (OPCIONALES)
+--------------------------------------------
+- Job “security”:
+  - `npm audit --production` (apta para monorepo con pnpm si apuntas a locks).
+  - Python: `pip-audit` si lo deseas.
+- Job “style”:
+  - `prettier --check .`
+
+DOCUMENTACIÓN
+-------------
+- Actualiza `/docs/ARCH.md` con el diagrama del flujo de pruebas y la relación CI.
+- Actualiza `/docs/API.md` con endpoints usados en e2e y sus precondiciones.
+- Añade a README (raíz) una sección **“Pruebas & CI”**:
+  - Comandos locales.
+  - Requisitos (Docker para e2e).
+  - Cómo leer los reportes generados.
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- `make test` pasa en local ejecutando unit+integración (API, PY, WEB) sin levantar docker.
+- `make test-e2e` levanta el stack, corre Playwright y lo apaga correctamente mostrando reportes.
+- CI en GitHub Actions:
+  - jobs de lint, test-api, test-py, test-web y e2e terminan en verde en un repo limpio.
+  - artifacts de coverage y e2e disponibles en la ejecución.
+- Cobertura mínima alcanzada (API ≥80%, PY ≥80%, WEB ≥75%).
+- Documentación actualizada, y scripts confiables para nuevos contribuidores.
+
+NOTAS FINALES
+-------------
+- Mantén los tests rápidos: la mayoría unit+integración; E2E sólo en su job o cuando se solicite.
+- Evita acoplar los tests a datos frágiles; usa fixtures controlados y seeds de prueba.
+- Si cambias el ORM (Prisma/Knex), revisa los helpers de test DB y migraciones.
+- Este prompt cierra el circuito de calidad; en el siguiente (Prompt 10) cerraremos la parte de Despliegue & DX & Observabilidad.
+
+PROMPT MAESTRO — 10. DESPLIEGUE, DX Y OBSERVABILIDAD
+====================================================
+
+ROL / CONTEXTO
+--------------
+Actúas como un equipo de Platform/DevEx/SRE para llevar el monorepo de “AI Data Steward” a un estado
+de **ejecución real** (local y cloud), con **DX excelente** y **observabilidad** robusta (logs, métricas y trazas).
+El resultado debe permitir:
+
+1) **Local-first** impecable:
+   - `make dev` para desarrollo (sin docker).
+   - `make up` para stack local vía Docker Compose (prod‑like).
+   - **DevContainer** opcional para entrar a trabajar en 1 click.
+
+2) **Producción reproducible**:
+   - Dockerfiles multi‑stage (web & api & py-quality).
+   - `docker-compose.prod.yml` con perfiles y variables claras.
+   - Plantillas de despliegue para Railway/Fly/Render (elige al menos uno y deja el resto listos).
+
+3) **Observabilidad**:
+   - Logs estructurados (pino, uvicorn) con correlación `requestId/traceId`.
+   - Métricas Prometheus (peticiones, latencias, errores, trabajo de colas).
+   - Tracing (OpenTelemetry) hacia OTLP (local o remoto).
+
+4) **Confiabilidad**:
+   - Endpoints de **/health**, **/ready**, **/live** coherentes.
+   - SLOs mínimos + runbooks y guías de incidencias.
+   - Documentación en `/docs/DEPLOY.md` y secciones nuevas en `/docs/ARCH.md`.
+
+EJECUCIÓN LOCAL (DX)
+--------------------
+A) Makefile (raíz) — nuevos targets
+- `dev`            → ya existe: web+api (+py opcional) sin docker.
+- `up`             → `docker compose up -d --build` (desarrollo con contenedores).
+- `down`           → `docker compose down -v`.
+- `up-prod`        → `docker compose -f docker-compose.prod.yml --env-file .env up -d --build`.
+- `down-prod`      → `docker compose -f docker-compose.prod.yml down -v`.
+- `logs`           → `docker compose logs -f`.
+- `lint` / `fmt`   → ya existentes, mantener.
+- `db`             → migraciones + seed en API (`pnpm --filter @.../api db:deploy && db:seed`).
+- `otel`           → arranca un colector OTEL local simple (si incluyes docker-compose.otel.yml).
+- `status`         → curl a /health /ready de api y py; imprime estados.
+
+B) DevContainer (opcional pero recomendado)
+- Carpeta `.devcontainer/` con:
+  - `devcontainer.json` apuntando a una imagen Node 18/20 + Python 3.10 + pnpm + Poetry.
+  - Features: docker‑in‑docker (si disponible) o sockets compartidos.
+  - PostCreate: `pnpm i -w && make dev`.
+- Justificación: onboarding de estudiantes/equipo en segundos.
+
+CONTENEDORIZACIÓN (Dockerfiles multi‑stage)
+-------------------------------------------
+/apps/api/Dockerfile
+- Stage `builder`: Node:lts‑alpine / Instala deps (pnpm ci) / Compila TS → `dist/`.
+- Stage `runner`: Node:lts‑alpine / Copia `dist/` + `node_modules --prod` + archivos necesarios.
+- Usuario no root, `PORT=8080`, `NODE_ENV=production`.
+- Entrypoint: `node dist/server.js`.
+
+/apps/web/Dockerfile
+- Stage `builder`: Node:lts‑alpine / `pnpm ci` / `pnpm build` (Vite) → `dist/`.
+- Stage `runner`: Caddy o Nginx light sirviendo `dist/` como estático.
+- Explica headers de caché y fallback `index.html` para SPA.
+
+/services/py-quality/Dockerfile
+- Stage `builder`: Python 3.10‑slim / instalar deps (pip/poetry) / compilar wheels si hace falta.
+- Stage `runner`: Python 3.10‑slim / copiar site‑packages y `app/` / usuario no root.
+- `QUALITY_PORT=8000`, `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
+
+COMPOSE DE PRODUCCIÓN
+---------------------
+Archivo: `docker-compose.prod.yml` (raíz)
+- Servicios:
+  - `postgres`: con volumen persistente, opcionado por variables (DB creds por env).
+  - `redis`: mismo patrón.
+  - `api`: build de /apps/api, depends_on [postgres, redis, py] (si lo incluyes).
+    - Env: `DATABASE_URL`, `REDIS_URL`, `PORT`, `LLM_PROVIDER=mock`, `SEND_TO_LLM=false`, `REGION`, `RETENTION_DAYS`, `OTEL_EXPORTER_OTLP_ENDPOINT` (si habilitas tracing).
+  - `py`: build de /services/py-quality, expone 8000.
+  - `web`: build de /apps/web, expone 80 (mapea a 5173 en local si quieres).
+  - (Opc) `otel-collector`: colector básico para recibir OTLP y exponer `/metrics`.
+- Redes: interna por defecto.
+- Volúmenes: `pgdata`, `storage`.
+- Perfiles: `prod` / `dev` para activar o desactivar servicios opcionales.
+
+PLANTILLAS DE DESPLIEGUE (elige y genera al menos Railway; deja plantillas del resto)
+--------------------------------------------------------------------------------------
+Railway (sencillo)
+- `railway/api.json`, `railway/web.json`, `railway/py.json` con buildpacks Docker.
+- Variables en Railway (Dashboard):
+  - API: `DATABASE_URL`, `REDIS_URL`, `LLM_PROVIDER`, `SEND_TO_LLM`, `REGION`, `RETENTION_DAYS`.
+  - PY: `QUALITY_TMP_DIR`, `KEEP_TMP`, `PHONE_CC`.
+  - WEB: `VITE_API_URL` apuntando al dominio de la API pública.
+
+Fly.io (VMs leves con red interna global)
+- `fly.toml` por servicio (api, py) o un solo app para api y worker (si separas workers).
+- `fly secrets set` para claves.
+- Healthchecks en `/health` y `/ready`.
+
+Render (PaaS)
+- `render.yaml` con servicios web (api, web) y background (py), Postgres/Redis gestionados.
+- Healthchecks y auto deploy on‑push.
+
+NGINX/CADDY (opcional: Reverse‑proxy)
+- Si despliegas manualmente en IaaS:
+  - Caddyfile con reverse hacia api (8080) y web estático (dist).
+  - TLS automático con Let’s Encrypt.
+
+OBSERVABILIDAD — LOGS, MÉTRICAS Y TRAZAS
+----------------------------------------
+A) Logs
+- API: pino con formato JSON; incluye `requestId` y, si existe, `traceId`.
+- PY: uvicorn con formato JSON (middleware de logging con `X-Request-Id` si presente).
+- Front: no loggues PII; solo errores con contexto mínimo.
+
+B) Métricas (Prometheus)
+- API (Fastify):
+  - Añade plugin `prom-client`/`under-pressure` o `fastify-metrics`:
+    - `GET /metrics` protegido por token (o expuesto solo en red interna).
+    - Métricas estándar: `http_requests_total`, `http_request_duration_seconds`, `process_*`.
+    - Custom: jobs de cola (`ingest_jobs_total`, `ingest_jobs_duration_seconds`), issues detectados por tipo.
+- PY (FastAPI):
+  - Middleware de métricas (starlette_exporter o prom-client equivalente):
+    - `GET /metrics` en py; agrega métricas de detección/normalización.
+- WEB:
+  - Opcional: no exponer métricas desde el front; si integras web‑vitals, envíalas a un endpoint interno.
+
+C) Tracing (OpenTelemetry)
+- API:
+  - `src/observability/otel.ts`: inicializa tracer con OTLP exporter configurable por `OTEL_EXPORTER_OTLP_ENDPOINT`.
+  - Auto‑instrumentación HTTP, Fastify y pino (si librerías disponibles).
+  - Propagación de contexto (W3C traceparent) y `requestId`.
+- PY:
+  - Instrumentación básica (opcional) con OTLP a colector.
+- Local:
+  - `docker-compose.otel.yml` con `otel-collector` + `jaeger` o `zipkin` para visualizar.
+
+SALUD DEL SERVICIO — PROBES
+---------------------------
+- API:
+  - `GET /health`: rápido, sin dependencias (ok).
+  - `GET /ready`: prueba conexión (short ping) a BD/Redis y worker; si falla, `ready=false` (200 en dev, 503 en prod si lo prefieres).
+  - `GET /live`: liveness (si el proceso responde).
+- PY:
+  - `GET /health` y `GET /version` (ya implementados en Prompt 3).
+- WEB:
+  - Sirve `/` y un `/_health.txt` estático con “ok” para load balancers.
+
+SLOs, ALERTAS Y RUNBOOKS
+------------------------
+Define SLOs mínimos (documenta en `/docs/DEPLOY.md`):
+- Disponibilidad API: **99.9%** mensual.
+- Latencia p95: **< 300 ms** para `GET` simples; **< 2000 ms** para rutas de preview/apply (según tamaño).
+- Tasa de errores: **< 0.5%** por día.
+- Job ingest time (p95): **< 30 s** (dataset medio).
+
+Alertas (si configuras Alertmanager/NewRelic/Datadog más tarde):
+- `5xx` > umbral X en 5 min.
+- Latencia p95 fuera de rango 10 min.
+- Disparo de OOM/kills de contenedor.
+- Espacio en disco para `storage/` o `pgdata` < 15%.
+
+Runbooks (añade en `/docs/DEPLOY.md`):
+- “API 5xx en pico”: revisar `logs`, mirar colas, comprobar BD/Redis; reinicio paulatino de pods/servicios.
+- “Latencia alta en preview/apply”: revisar dataset size, habilitar chunking, aumentar worker concurrency.
+- “Jobs atascados”: purgar cola, reintentos con backoff, inspeccionar payloads.
+- “Purge no borra”: ejecutar manualmente script de purga y revisar permisos de `storage/`.
+
+SEGURIDAD EN PRODUCCIÓN (RESUMEN)
+---------------------------------
+- **TLS**: siempre (en PaaS suele venir dado; en IaaS, usar Caddy/Nginx con Let’s Encrypt).
+- **Headers**: Helmet + CSP ajustada (report-only al principio).
+- **CORS**: dominios explícitos; sin credenciales salvo necesidad real.
+- **Rate limit**: activo (ajusta según tráfico).
+- **Secretos**: variables en gestor de secretos (Railway/Fly/Render Secrets).
+- **Backups**: si usas managed Postgres, habilita snapshots; documenta retención de backups.
+- **Retención/Purga**: ver Prompt 8; asegurar `ENABLE_PURGE_CRON=true` y logs de auditoría.
+
+DOCUMENTACIÓN (DEPLOY & ARCH)
+-----------------------------
+Genera/Actualiza:
+- `/docs/DEPLOY.md`:
+  - **Local**: `make up`, `make up-prod`, endpoints, cómo ver logs, cómo bajar el stack.
+  - **Prod (Railway)**: pasos para crear servicios, configurar env vars, despliegue de imágenes (autobuilds o `railway up`), enlaces de salud.
+  - **Prod (Fly/Render)**: similar; subcomandos específicos.
+  - **Observabilidad**: cómo ver `/metrics` y abrir Jaeger/Zipkin si habilitado localmente.
+  - **SLOs y Alertas**: listado y umbrales.
+  - **Runbooks**: escenarios y pasos.
+- `/docs/ARCH.md`:
+  - Añade diagrama de runtime (reverse proxy, api, py, db, redis, otel, prometheus).
+
+SCRIPTS Y CONFIGURACIÓN AUXILIAR
+--------------------------------
+- `scripts/wait-for.sh` (opcional): espera readiness con reintentos (utilízalo en e2e).
+- `k8s/` (opcional): si quieres dejar manifest básicos (Deployment/Service/Ingress), crea placeholders con comentarios.
+- `caddy/Caddyfile` (opcional): reverse proxy listo para IaaS.
+
+CRITERIOS DE ACEPTACIÓN (DoD)
+-----------------------------
+- **Local**:
+  - `make up` levanta stack dev con contenedores; `/health` responde; logs accesibles con `make logs`.
+  - `make up-prod` levanta stack prod‑like sirviendo web estático y API detrás del contenedor; `/ready` indica dependencias OK.
+  - `/metrics` accesible en API/PY (en red interna o con token).
+  - Tracing OTEL (si activas el colector local) muestra spans de peticiones API.
+
+- **Prod (al menos Railway)**:
+  - API, PY y WEB desplegados y sirviendo; web apunta a API correcta.
+  - Variables de entorno configuradas; `SEND_TO_LLM=false` por defecto.
+  - Healthchecks de plataforma en verde; primera carga de la aplicación correcta.
+
+- **Docs**:
+  - `/docs/DEPLOY.md` completo con pasos y capturas/fragmentos.
+  - `/docs/ARCH.md` actualizado con diagrama de runtime y flujos de observabilidad.
+
+- **SRE**:
+  - SLOs mínimos definidos y visibles.
+  - Runbooks escritos y accesibles.
+
+NOTAS FINALES
+-------------
+- Mantén “mock” por defecto para IA en producción inicial (evitas costos y riesgos). Cuando actives proveedor real, asegúrate de `SEND_TO_LLM=true`, sanitización dura y trazabilidad.
+- No olvides enlazar migraciones DB en el pipeline de deploy (`db:deploy`) y, si procede, seeds controlados.
+- Evita exponer `/metrics` públicamente; usa red interna o auth simple.
+- Todo lo aquí definido debe **complementar** lo hecho en los Prompts 1–9 sin romper interfaces.
+- Prioriza **portabilidad** (Docker) y **simplicidad** (Railway/Render/Fly) para el primer release; Kubernetes puede llegar después.
+
+FIN DEL PROMPT 10 — DESPLIEGUE, DX Y OBSERVABILIDAD
+----------------------------------------------------
+``
