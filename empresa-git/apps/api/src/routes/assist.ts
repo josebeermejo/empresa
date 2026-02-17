@@ -1,64 +1,73 @@
 import { FastifyInstance } from 'fastify';
-import { validateBody } from '../lib/validation.js';
-import * as assistService from '../domain/services/assist.service.js';
-import {
-    AssistClassifyRequest,
-    AssistExplainRequest,
-    AssistRagRequest,
-} from '../domain/dto.js';
+import { z } from 'zod';
 import env from '../config/env.js';
+import { MockProvider } from '../lib/llm/providers/mock.js';
+import { RAGLoader } from '../lib/rag/loader';
+import { RAGSearch } from '../lib/rag/search';
+import path from 'path';
 
-export default async function assistRoutes(fastify: FastifyInstance) {
-    /**
-     * Classify a column header
-     */
-    fastify.post('/api/assist/classify', async (request, reply) => {
-        if (env.llmProvider !== 'mock') {
+const llm = new MockProvider(); // Default to mock for now
+
+const ClassifyBody = z.object({
+    headerName: z.string(),
+    examples: z.array(z.string()).optional(),
+});
+
+const ExplainBody = z.object({
+    issue: z.any(),
+});
+
+const RagBody = z.object({
+    query: z.string(),
+});
+
+export async function assistRoutes(fastify: FastifyInstance) {
+    fastify.post('/assist/classify', async (req, reply) => {
+        if (!env.sendToLlm) {
             return reply.status(501).send({
-                error: {
-                    message: `LLM provider '${env.llmProvider}' not configured in this environment`,
-                    code: 'LLM_NOT_CONFIGURED',
-                    statusCode: 501,
-                },
+                code: 'AI_DISABLED',
+                message: 'AI features are disabled by configuration (SEND_TO_LLM=false)',
             });
         }
 
-        const body = validateBody(AssistClassifyRequest, request.body);
-        const result = await assistService.classifyColumn(
-            body.headerName,
-            body.examples
-        );
+        // Manual parsing/validation since we didn't setup fastify-zod yet
+        const parse = ClassifyBody.safeParse(req.body);
+        if (!parse.success) return reply.status(400).send(parse.error);
 
+        const { headerName, examples } = parse.data;
+        const result = await llm.classifyColumn({ headerName, examples });
         return result;
     });
 
-    /**
-     * Explain an issue
-     */
-    fastify.post('/api/assist/explain', async (request, reply) => {
-        if (env.llmProvider !== 'mock') {
+    fastify.post('/assist/explain', async (req, reply) => {
+        if (!env.sendToLlm) {
             return reply.status(501).send({
-                error: {
-                    message: `LLM provider '${env.llmProvider}' not configured in this environment`,
-                    code: 'LLM_NOT_CONFIGURED',
-                    statusCode: 501,
-                },
+                code: 'AI_DISABLED',
+                message: 'AI features are disabled by configuration (SEND_TO_LLM=false)',
             });
         }
+        const parse = ExplainBody.safeParse(req.body);
+        if (!parse.success) return reply.status(400).send(parse.error);
 
-        const body = validateBody(AssistExplainRequest, request.body);
-        const result = await assistService.explainIssue(body.issue);
-
+        const { issue } = parse.data;
+        const result = await llm.explainIssue({ issue });
         return result;
     });
 
-    /**
-     * Query documentation (RAG)
-     */
-    fastify.post('/api/assist/rag', async (request, reply) => {
-        const body = validateBody(AssistRagRequest, request.body);
-        const result = await assistService.queryDocs(body.query);
+    fastify.post('/assist/rag', async (req, reply) => {
+        const parse = RagBody.safeParse(req.body);
+        if (!parse.success) return reply.status(400).send(parse.error);
 
-        return result;
+        const { query } = parse.data;
+        const docsPath = path.resolve(process.cwd(), '../../docs'); // Relative to apps/api
+        const chunks = await RAGLoader.loadDocs(docsPath);
+        const results = RAGSearch.search(query, chunks);
+
+        return {
+            answer: results.length
+                ? `Based on documentation, here are some relevant sections:\n\n${results.map(r => r.content.slice(0, 150) + '...').join('\n\n')}`
+                : "I couldn't find relevant information in the documentation.",
+            sources: results.map(r => `/docs/${r.path}`),
+        };
     });
 }

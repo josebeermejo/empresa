@@ -6,14 +6,13 @@ WORKDIR /app
 COPY package.json ./
 
 # Install dependencies
-RUN npm install -g pnpm@9
-RUN pnpm install --frozen-lockfile
+RUN npm install
 
 # Copy source
 COPY . .
 
 # Build
-RUN pnpm run build
+RUN npm run build
 
 # Production stage
 FROM nginx:alpine

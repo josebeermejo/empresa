@@ -1,28 +1,28 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import Home from './pages/Home';
-import Health from './pages/Health';
+import { Outlet } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/query';
+import NavBar from './components/NavBar';
+import Footer from './components/Footer';
+import './lib/i18n'; // Initialize i18n
+import ChatbotPanel from './components/ChatbotPanel';
+import { PrivacyBanner } from './components/PrivacyBanner';
 
 function App() {
     return (
-        <BrowserRouter>
-            <div className="app">
-                <nav className="navbar">
-                    <div className="container">
-                        <h1 className="logo">AI Data Steward</h1>
-                        <div className="nav-links">
-                            <Link to="/">Inicio</Link>
-                            <Link to="/health">Estado del Sistema</Link>
-                        </div>
-                    </div>
-                </nav>
-                <main className="main-content">
-                    <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/health" element={<Health />} />
-                    </Routes>
+        <QueryClientProvider client={queryClient}>
+            <div className="flex flex-col min-h-screen bg-gray-50 text-gray-900 font-sans">
+                <NavBar />
+                <main className="flex-grow">
+                    <Outlet />
                 </main>
+                <Footer />
+                <PrivacyBanner />
+                <div className="fixed bottom-6 right-6 z-50">
+                    {/* Floating Chatbot */}
+                    <ChatbotPanel />
+                </div>
             </div>
-        </BrowserRouter>
+        </QueryClientProvider>
     );
 }
 

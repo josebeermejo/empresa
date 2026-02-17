@@ -165,7 +165,7 @@ Get dataset metadata.
 
 #### `DELETE /api/datasets/:id`
 
-Delete a dataset and its files.
+Delete a dataset and its files. This action cascades to delete all associated issues, fixes, and analysis results.
 
 **Parameters**:
 - `id` (path) - Dataset ID
@@ -402,6 +402,33 @@ Delete a rule.
 ```
 
 ---
+ 
+ ### Privacy & Consent
+ 
+ #### `POST /api/consent`
+ 
+ Log user consent for cookies and data processing.
+ 
+ **Request Body**:
+ ```json
+ {
+   "acceptedAt": "2024-01-15T10:30:00.000Z",
+   "userAgent": "Mozilla/5.0 ..."
+ }
+ ```
+ 
+ **Response**:
+ ```json
+ {
+   "success": true
+ }
+ ```
+ 
+ **Status Codes**:
+ - `200 OK`
+ - `400 Bad Request`
+ 
+ ---
 
 ### AI Assistance
 

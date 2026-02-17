@@ -1,266 +1,134 @@
 # AI Data Steward
 
-> Plataforma inteligente para la gestión de calidad y gobernanza de datos empresariales
+**AI Data Steward** es una plataforma integral para la gestión, limpieza y enriquecimiento de datos empresariales, potenciada por Inteligencia Artificial y diseñada con estrictos controles de privacidad y seguridad (RGPD).
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+![Estado](https://img.shields.io/badge/Estado-Beta-blue) ![Licencia](https://img.shields.io/badge/Licencia-Privada-red)
 
-## 📋 Descripción
+## 📋 Características Principales
 
-AI Data Steward es una plataforma modular que combina análisis automatizado, reglas configurables e inteligencia artificial para detectar y corregir problemas de calidad en datos empresariales. Diseñado con cumplimiento RGPD nativo y arquitectura de microservicios escalable.
+- **Ingesta de Datos**: Carga y procesa archivos CSV y Excel de gran volumen.
+- **Calidad de Datos**: Detecta automáticamente duplicados, errores de formato, valores faltantes y anomalías.
+- **Asistente IA**: Sugiere correcciones y explica problemas de datos usando modelos LLM (simulados o reales).
+- **Privacidad y Seguridad**:
+  - Gestión de consentimiento y cumplimiento RGPD.
+  - Purga automática de datos (retención configurable).
+  - Auditoría de acciones sensibles.
+  - Guardrails para evitar fugas de información a la IA.
+- **Reglas Personalizables**: Motor de validación flexible (Regex, rangos numéricos, listas permitidas).
 
-## ✨ Características
+## 🚀 Guía de Inicio Rápido
 
-- 🔍 **Detección Automática** - Identifica problemas de calidad usando reglas y análisis impulsado por IA
-- 🤖 **Corrección Inteligente** - Sugerencias de corrección con diferentes niveles de confianza
-- 📊 **Dashboard en Tiempo Real** - Visualización del estado de calidad de tus datos
-- 🔒 **RGPD & Seguridad** - Cumplimiento nativo con minimización, retención configurable y auditoría
-- 🔌 **Integración Flexible** - Soporte para CSV, bases de datos y APIs
-- 📝 **Reglas No-Code** - Define validaciones sin programar usando YAML/JSON
+### Prerrequisitos
 
-## 🚀 Quickstart 60s
+- **Node.js**: Versión 18 o superior (Requerido por Vite 5).
+- **NPM** o **PNPM**: Gestor de paquetes.
 
-### Requisitos
+### Instalación y Ejecución Rápida
 
-- **Node.js** 18+ and **pnpm** 9+
-- **Python** 3.10+
-- **Docker** & Docker Compose (opcional, para desarrollo con contenedores)
+1. Clonar el repositorio y entrar en la carpeta.
+2. Ejecutar el script iniciador:
+   ```bash
+   ./aplicacion.sh
+   ```
 
-### Instalación Rápida
+Este script verificará automáticamente tu versión de Node.js, instalará las dependencias si es necesario e iniciará los servidores.
 
+### Instalación Manual (Alternativa)
+1. Instalar dependencias (desde la raíz):
+   ```bash
+   npm install
+   ```
+2. Iniciar en desarrollo:
+   ```bash
+   npm run dev
+   ```
+
+Esto iniciará:
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:8080
+
+## 📖 Manual de Usuario
+
+### 1. Panel Principal (Dashboard)
+El dashboard ofrece una vista general del estado del sistema, incluyendo:
+- Datasets recientes.
+- Métricas de calidad (filas totales, errores detectados).
+- Estado de los servicios.
+
+### 2. Gestión de Datos (Ingeniería)
+Navega a la sección **"Ingeniería"** para:
+- **Subir Archivos**: Arrastra y suelta tus archivos CSV/Excel.
+- **Ver Detalles**: Haz clic en cualquier dataset para ver su análisis.
+
+### 3. Limpieza y Corrección
+Dentro de un dataset:
+- **Pestaña Issues**: Revisa la lista de problemas detectados (emails inválidos, teléfonos erróneos, etc.).
+- **Asistente IA**: Usa el botón "Explain" o "Fix" para recibir ayuda sobre cómo solucionar un error.
+- **Aplicar Reglas**: Define reglas específicas en la sección "Reglas" para automatizar validaciones.
+
+### 4. Privacidad y Configuración
+Accede a **"Privacidad"** (o vía el banner inferior) para:
+- **Consentimiento**: Aceptar o rechazar el procesamiento de datos.
+- **Configuración IA**: Activar/Desactivar el envío de datos a proveedores externos de IA (`SEND_TO_LLM`).
+- **Zona de Peligro**: Eliminar permanentemente tus datasets (Borrado seguro en cascada).
+
+### 5. Exportación
+Una vez limpios tus datos los puedes descargar:
+- Ve a la pestaña **"Exportar"** dentro del dataset.
+- Selecciona el formato: CSV, Excel o JSON.
+
+## 🛠️ Configuración Técnica
+
+El sistema se configura mediante variables de entorno en `apps/api/.env` y `apps/web/.env`.
+
+**Backend (`apps/api/.env`):**
 ```bash
-# 1. Clonar repositorio
-git clone <repo-url>
-cd ai-data-steward
-
-# 2. Copiar configuración de ejemplo
-cp .env.example .env
-
-# 3. Instalar dependencias
-pnpm install
-
-# 4. Iniciar desarrollo (sin Docker)
-make dev
-```
-
-Abre tu navegador en:
-- **Web**: http://localhost:5173
-- **API**: http://localhost:8080/health
-
-### Con Docker
-
-```bash
-# Iniciar todos los servicios (postgres, redis, api, web, py-quality)
-make up
-
-# Ver logs
-make logs
-
-# Detener servicios
-make down
-```
-
-## 📁 Estructura del Proyecto
-
-```
-ai-data-steward/
-├── apps/
-│   ├── web/              # Frontend (React + Vite)
-│   └── api/              # Backend API (Fastify + TypeScript)
-├── services/
-│   └── py-quality/       # Servicio Python de análisis (FastAPI)
-├── datasets/
-│   └── samples/          # CSV de ejemplo con datos "sucios"
-├── docs/                 # Documentación técnica
-│   ├── ARCH.md           # Arquitectura del sistema
-│   ├── API.md            # Documentación de API
-│   ├── SEC_RGPD.md       # Seguridad y cumplimiento RGPD
-│   ├── LLM.md            # Integración con LLM
-│   ├── RULES.md          # Sistema de reglas no-code
-│   └── DEPLOY.md         # Guía de despliegue
-├── storage/              # Archivos temporales (ignorado por git)
-├── docker-compose.yml    # Orquestación de servicios
-├── Makefile              # Comandos de desarrollo
-└── README.md             # Este archivo
-```
-
-## 🎯 Comandos Disponibles
-
-```bash
-make help           # Mostrar todos los comandos disponibles
-make install        # Instalar dependencias
-make dev            # Desarrollo local (sin Docker)
-make up             # Iniciar con Docker
-make down           # Detener Docker
-make logs           # Ver logs de Docker
-make build          # Compilar aplicaciones
-make fmt            # Formatear código (Prettier)
-make lint           # Verificar código (ESLint)
-make lint:fix       # Corregir problemas de linting
-make typecheck      # Verificar tipos TypeScript
-make test           # Ejecutar tests (placeholder)
-make seed           # Poblar base de datos (placeholder)
-make clean          # Limpiar artefactos
-```
-
-## 🔧 Configuración
-
-### Variables de Entorno
-
-Edita `.env` para personalizar:
-
-```env
-# Puertos
-PORT_WEB=5173
-PORT_API=8080
-PORT_PY_QUALITY=8000
-
-# Base de datos
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/stewarddb
-
-# LLM Provider (mock, gemini, openai, azure)
-LLM_PROVIDER=mock
-
-# Retención de datos (días)
+PORT=8080
+CORS_ORIGIN=http://localhost:5173
+# Seguridad
+RATE_LIMIT_MAX=100
 RETENTION_DAYS=30
-
-# Feature flags
-FEATURE_EXPORT_SHEETS=false
+ENABLE_PURGE_CRON=true
+# IA
+SEND_TO_LLM=false (true para habilitar llamadas reales)
 ```
 
-Ver `.env.example` para todas las opciones disponibles.
-
-## 📊 Datasets de Ejemplo
-
-En `/datasets/samples` encontrarás tres archivos CSV con problemas de calidad comunes:
-
-- **clientes_sucios.csv** - Emails inválidos, duplicados, datos faltantes
-- **ventas_sucias.csv** - Fechas en múltiples formatos, valores inconsistentes
-- **inventario_sucio.csv** - SKUs vacíos, precios negativos, duplicados
-
-Estos archivos son útiles para probar el sistema.
-
-## 📚 Documentación
-
-- [**Arquitectura**](docs/ARCH.md) - Diagrama y explicación de componentes
-- [**API**](docs/API.md) - Endpoints y formatos de request/response
-- [**Seguridad & RGPD**](docs/SEC_RGPD.md) - Cumplimiento y mejores prácticas
-- [**LLM Integration**](docs/LLM.md) - Multi-proveedor (Gemini, OpenAI, Azure)
-- [**Reglas No-Code**](docs/RULES.md) - Sistema de validación declarativo
-- [**Deployment**](docs/DEPLOY.md) - Guía de despliegue a producción
-
-## 🛠 Tecnologías
-
-### Frontend
-- React 18 + TypeScript
-- Vite 5
-- React Router 6
-
-### Backend API
-- Fastify 4 + TypeScript
-- Pino (logging)
-- CORS & Helmet (seguridad)
-
-### Servicio Python
-- FastAPI
-- Uvicorn
-- Pydantic
-
-### Infraestructura
-- PostgreSQL 16
-- Redis 7
-- Docker & Docker Compose
-- pnpm workspaces (monorepo)
-
-## 🐛 Troubleshooting
-
-### Puerto ya en uso
-
+**Frontend (`apps/web/.env`):**
 ```bash
-# Identificar proceso usando el puerto
-lsof -i :8080
-
-# Cambiar puerto en .env
-PORT_API=8081
+VITE_API_URL=http://localhost:8080
+VITE_PRIVACY_BANNER=true
+VITE_SEND_TO_LLM=false
 ```
 
-### Errores al instalar dependencias
+## 📚 Documentación Adicional
 
+Para detalles más profundos sobre la arquitectura y seguridad, consulta los documentos en la carpeta `/docs`:
+
+- [**Arquitectura del Sistema**](docs/ARCH.md) (`docs/ARCH.md`)
+- [**Referencia API**](docs/API.md) (`docs/API.md`)
+- [**Seguridad y RGPD**](docs/SEC_RGPD.md) (`docs/SEC_RGPD.md`)
+
+## 🆘 Solución de Problemas Comunes
+
+### 1. Error: `pnpm: not found`
+Se ha actualizado el proyecto para usar **NPM Workspaces** por defecto. Si intentas ejecutar `npm run dev` y recibes un error sobre `pnpm`, asegúrate de estar usando la última versión del código. Ya no es necesario instalar `pnpm`.
+
+### 2. Error: `Prisma only supports Node.js >= 16.13` o similar
+Este proyecto utiliza tecnologías modernas (Vite 5, Prisma, Fastify) que requieren **Node.js v18** o superior. Si tu versión actual es v12 o v14, el sistema no funcionará.
+
+**Para actualizar Node.js en Ubuntu/WSL:**
 ```bash
-# Limpiar caché de pnpm
-pnpm store prune
-
-# Reinstalar
-rm -rf node_modules apps/*/node_modules
-pnpm install
+# Instalar NVM (Node Version Manager)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# Recargar shell
+source ~/.bashrc
+# Instalar Node 18
+nvm install 18
+nvm use 18
 ```
 
-### Docker Compose no inicia
-
-```bash
-# Reconstruir imágenes
-make down
-docker compose build --no-cache
-make up
-```
-
-### Permisos en carpeta storage
-
-```bash
-# Dar permisos de escritura
-chmod -R 755 storage/
-```
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/amazing-feature`)
-3. Commit tus cambios (`git commit -m 'feat: add amazing feature'`)
-4. Push a la rama (`git push origin feature/amazing-feature`)
-5. Abre un Pull Request
-
-Ver [PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md) para el formato esperado.
-
-### Convención de Commits
-
-Usamos [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-feat: nueva característica
-fix: corrección de bug
-docs: cambios en documentación
-style: formateo, punto y coma, etc.
-refactor: refactorización sin cambio de features
-test: añadir tests
-chore: tareas de mantenimiento
-```
-
-## 📄 Licencia
-
-Este proyecto está bajo la licencia MIT. Ver [LICENSE](LICENSE) para más detalles.
-
-## 👥 Equipo
-
-**DemoLab** - Organización de desarrollo
-
-## 🗺 Roadmap
-
-- [x] **Fase 1**: Scaffolding y tooling
-- [ ] **Fase 2**: Integración con bases de datos
-- [ ] **Fase 3**: Lógica de análisis de calidad
-- [ ] **Fase 4**: Sistema de reglas no-code
-- [ ] **Fase 5**: Integración con LLM (Gemini/OpenAI)
-- [ ] **Fase 6**: Dashboard y visualizaciones
-- [ ] **Fase 7**: Autenticación y multi-tenancy
-
-## 📞 Soporte
-
-- **Issues**: [GitHub Issues](../../issues)
-- **Documentación**: [/docs](docs/)
-- **Email**: support@demolab.com
+### 3. Errores de Tipado (TypeScript)
+Si ves errores como `Cannot find type definition file for 'vitest/globals'`, es probable que sea porque las dependencias no se han instalado correctamente debido a la versión de Node. Una vez que actualices a Node 18 y ejecutes `npm install`, estos errores desaparecerán.
 
 ---
-
-**Hecho con ❤️ por DemoLab**
+Desarrollado por el equipo de AI Data Steward.

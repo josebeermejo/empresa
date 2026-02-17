@@ -9,15 +9,17 @@ import { errorHandler } from './lib/errors.js';
 
 // Routes
 import healthRoutes from './routes/health.js';
+import securityPlugin from './plugins/security.js';
 import datasetsRoutes from './routes/datasets.js';
 import issuesRoutes from './routes/issues.js';
 import fixesRoutes from './routes/fixes.js';
 import rulesRoutes from './routes/rules.js';
-import assistRoutes from './routes/assist.js';
+import { assistRoutes } from './routes/assist.js';
+import { privacyRoutes } from './routes/privacy.js'; // This one was a named export in my previous step
 
 export async function buildApp() {
     const app = Fastify({
-        logger,
+        logger: logger as any, // Cast to any to avoid strict type mismatch with FastifyLogger
         requestIdLogLabel: 'reqId',
         disableRequestLogging: false,
     });
@@ -56,13 +58,17 @@ export async function buildApp() {
     // Error handler
     app.setErrorHandler(errorHandler);
 
+    // Register plugins
+    await app.register(securityPlugin);
+
     // Register routes
     await app.register(healthRoutes);
-    await app.register(datasetsRoutes);
-    await app.register(issuesRoutes);
-    await app.register(fixesRoutes);
-    await app.register(rulesRoutes);
-    await app.register(assistRoutes);
+    await app.register(datasetsRoutes, { prefix: '/api/datasets' });
+    await app.register(issuesRoutes, { prefix: '/api/datasets' }); // Nested under dataset
+    await app.register(fixesRoutes, { prefix: '/api/datasets' }); // Nested under dataset
+    await app.register(rulesRoutes, { prefix: '/api/rules' });
+    await app.register(assistRoutes, { prefix: '/api/assist' });
+    await app.register(privacyRoutes, { prefix: '/api' });
 
     return app;
 }

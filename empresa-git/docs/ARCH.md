@@ -189,11 +189,12 @@ AI Data Steward es una plataforma modular diseñada con arquitectura de microser
 4. **Acceso**: Autenticación JWT (futuro)
 
 ### Cumplimiento RGPD
-- **Minimización**: Solo datos necesarios
-- **Retención**: Limpieza automática después de `RETENTION_DAYS`
-- **Auditoría**: Registro completo de operaciones
-- **Portabilidad**: Exportación en formatos estándar
-- **Derecho al olvido**: Eliminación completa de datos
+- **Minimización**: Solo datos necesarios. Uploads limitados por tamaño y tipo.
+- **Retención**: Limpieza automática después de `RETENTION_DAYS` (Default: 30) mediante Cron Job.
+- **Auditoría**: Registro completo de operaciones (`audit_log`) para trazabilidad.
+- **Portabilidad**: Exportación en formatos estándar (CSV, XLSX).
+- **Derecho al olvido**: Eliminación completa de datos (`DELETE /dataset/:id`) con borrado en cascada.
+- **IA Segura**: Control `SEND_TO_LLM` para evitar fugas de datos a proveedores externos.
 
 ## Tecnologías y Dependencias
 

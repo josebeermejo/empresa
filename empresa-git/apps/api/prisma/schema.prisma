@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  region    String   @default("EU")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  projects Project[]
+  users    User[]
+  rules    Rule[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  email     String   @unique
+  role      String   // CHECK constraint in migration
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Project {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  datasets     Dataset[]
+
+  @@map("projects")
+}
+
+model Dataset {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  filename  String
+  status    String   // CHECK constraint in migration
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  project Organization @relation(fields: [projectId], references: [id], onDelete: Cascade) // Linking to Org for simplicity in demo or Project?
+  // Schema says Project -> Dataset. Let's fix relation:
+  projectRel Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  columns Column[]
+  issues  Issue[]
+  fixes   Fix[]
+  exports Export[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("datasets")
+}
+
+model Column {
+  id           String   @id @default(uuid())
+  datasetId    String   @map("dataset_id")
+  name         String
+  inferredType String   @map("inferred_type")
+  confidence   Decimal  @db.Decimal(4, 3)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@map("columns")
+}
+
+model Issue {
+  id        String   @id @default(uuid())
+  datasetId String   @map("dataset_id")
+  kind      String   // CHECK constraint
+  severity  String   // CHECK constraint
+  rowNo     Int?     @map("row_no")
+  colName   String?  @map("col_name")
+  details   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId])
+  @@index([kind])
+  @@index([severity])
+  @@map("issues")
+}
+
+model Fix {
+  id          String   @id @default(uuid())
+  datasetId   String   @map("dataset_id")
+  rowNo       Int      @map("row_no")
+  colName     String   @map("col_name")
+  before      String?
+  after       String?
+  ruleId      String?  @map("rule_id")
+  explanation String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId, createdAt(sort: Desc)])
+  @@map("fixes")
+}
+
+model Rule {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  name      String
+  kind      String   // CHECK constraint
+  severity  String   // CHECK constraint
+  spec      Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, kind])
+  @@map("rules")
+}
+
+model Export {
+  id        String   @id @default(uuid())
+  datasetId String   @map("dataset_id")
+  target    String   // CHECK constraint
+  status    String   // CHECK constraint
+  details   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  dataset Dataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+
+  @@index([datasetId, status])
+  @@map("exports")
+}
+
+model Job {
+  id        String   @id @default(uuid())
+  name      String
+  payload   Json
+  status    String   // CHECK constraint
+  attempts  Int      @default(0)
+  lastError String?  @map("last_error")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([name, status])
+  @@index([updatedAt(sort: Desc)])
+  @@map("jobs")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  target    String?
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+  @@map("logs_audit")
+}

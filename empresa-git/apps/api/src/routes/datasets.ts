@@ -1,16 +1,22 @@
 import { FastifyInstance } from 'fastify';
-import { validateBody, validateParams } from '../lib/validation.js';
+import { validateParams } from '../lib/validation.js'; // Removed validateBody
 import * as datasetsService from '../domain/services/datasets.service.js';
 import * as storage from '../lib/storage.js';
-import { DatasetMeta, UploadResponse } from '../domain/dto.js';
+import { DatasetMeta } from '../domain/dto.js'; // Removed UploadResponse
 import { z } from 'zod';
 import { pipeline } from 'stream/promises';
 import { createWriteStream } from 'fs';
 import { join } from 'path';
+import { audit } from '../lib/audit.js';
 
 const DatasetIdParams = z.object({
     id: z.string(),
 });
+
+// Define response type locally if not imported or use anonymous type
+interface UploadResponse {
+    datasetId: string;
+}
 
 export default async function datasetsRoutes(fastify: FastifyInstance) {
     /**
@@ -70,6 +76,13 @@ export default async function datasetsRoutes(fastify: FastifyInstance) {
                 datasetId: meta.id,
             };
 
+            // Audit upload
+            await audit('upload_dataset', meta.id, {
+                filename,
+                size: stats.size,
+                mimeType: data.mimetype,
+            });
+
             return reply.status(201).send(response);
         } catch (error: any) {
             // Clean up on error
@@ -108,7 +121,12 @@ export default async function datasetsRoutes(fastify: FastifyInstance) {
         '/api/datasets/:id',
         async (request, reply) => {
             const { id } = validateParams(DatasetIdParams, request.params);
+
+            // TODO: Ensure service handles cascade delete of issues/fixes
             await datasetsService.deleteDataset(id);
+
+            // Audit delete
+            await audit('delete_dataset', id);
 
             return { deleted: true };
         }

@@ -20,6 +20,10 @@ export interface EnvConfig {
     logLevel: string;
     maxUploadSize: number;
     rateLimitMax: number;
+    sendToLlm: boolean;
+    privacyBanner: boolean;
+    enablePurgeCron: boolean;
+    cspReportOnly: boolean;
 }
 
 const env: EnvConfig = {
@@ -39,6 +43,10 @@ const env: EnvConfig = {
     logLevel: process.env.LOG_LEVEL || 'info',
     maxUploadSize: parseInt(process.env.MAX_UPLOAD_SIZE || '52428800', 10), // 50MB default
     rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
+    sendToLlm: process.env.SEND_TO_LLM === 'true', // Default to false
+    privacyBanner: process.env.PRIVACY_BANNER === 'true',
+    enablePurgeCron: process.env.ENABLE_PURGE_CRON === 'true',
+    cspReportOnly: process.env.CSP_REPORT_ONLY === 'true',
 };
 
 export default env;

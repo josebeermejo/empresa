@@ -155,3 +155,15 @@ export async function writeDatasetFile(
     const filePath = join(dir, filename);
     await fs.writeFile(filePath, content);
 }
+
+/**
+ * Delete dataset directory and all its contents
+ */
+export async function deleteDatasetDir(datasetId: string): Promise<void> {
+    const dir = join(STORAGE_DIR, 'datasets', datasetId);
+    try {
+        await fs.rm(dir, { recursive: true, force: true });
+    } catch (error) {
+        logger.warn({ datasetId, error }, 'Failed to delete dataset directory');
+    }
+}

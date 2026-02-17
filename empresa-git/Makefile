@@ -28,7 +28,7 @@ logs: ## Show Docker logs
 
 build: ## Build all applications
 	@echo "🔨 Building applications..."
-	@pnpm run build
+	@npm run build
 
 test: ## Run tests (placeholder)
 	@echo "🧪 Running tests..."
@@ -36,19 +36,19 @@ test: ## Run tests (placeholder)
 
 fmt: ## Format code with Prettier
 	@echo "✨ Formatting code..."
-	@pnpm run fmt
+	@npm run fmt
 
 lint: ## Run ESLint
 	@echo "🔍 Linting code..."
-	@pnpm run lint
+	@npm run lint
 
 lint:fix: ## Fix linting issues
 	@echo "🔧 Fixing linting issues..."
-	@pnpm run lint:fix
+	@npm run lint:fix
 
 typecheck: ## Run TypeScript type checking
 	@echo "📝 Type checking..."
-	@pnpm run typecheck
+	@npm run typecheck
 
 seed: ## Seed database (placeholder)
 	@echo "🌱 Seeding database..."
