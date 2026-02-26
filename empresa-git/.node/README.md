@@ -98,15 +98,15 @@ files.
 
 To download `SHASUMS256.txt` using `curl`:
 
-```console
-$ curl -O https://nodejs.org/dist/vx.y.z/SHASUMS256.txt
+```bash
+curl -O https://nodejs.org/dist/vx.y.z/SHASUMS256.txt
 ```
 
 To check that a downloaded file matches the checksum, run
 it through `sha256sum` with a command such as:
 
-```console
-$ grep node-vx.y.z.tar.gz SHASUMS256.txt | sha256sum -c -
+```bash
+grep node-vx.y.z.tar.gz SHASUMS256.txt | sha256sum -c -
 ```
 
 For Current and LTS, the GPG detached signature of `SHASUMS256.txt` is in
@@ -115,16 +115,16 @@ For Current and LTS, the GPG detached signature of `SHASUMS256.txt` is in
 [the GPG keys of individuals authorized to create releases](#release-keys). To
 import the keys:
 
-```console
-$ gpg --keyserver hkps://keys.openpgp.org --recv-keys 4ED778F539E3634C779C87C6D7062848A1AB005C
+```bash
+gpg --keyserver hkps://keys.openpgp.org --recv-keys 4ED778F539E3634C779C87C6D7062848A1AB005C
 ```
 
 See [Release keys](#release-keys) for a script to import active release keys.
 
 Next, download the `SHASUMS256.txt.sig` for the release:
 
-```console
-$ curl -O https://nodejs.org/dist/vx.y.z/SHASUMS256.txt.sig
+```bash
+curl -O https://nodejs.org/dist/vx.y.z/SHASUMS256.txt.sig
 ```
 
 Then use `gpg --verify SHASUMS256.txt.sig SHASUMS256.txt` to verify
@@ -165,17 +165,13 @@ For information about the governance of the Node.js project, see
 * [aduh95](https://github.com/aduh95) -
   **Antoine du Hamel** <<duhamelantoine1995@gmail.com>> (he/him)
 * [anonrig](https://github.com/anonrig) -
-  **Yagiz Nizipli** <<yagiz@nizipli.com>> (he/him)
+  **Yagiz Nizipli** <<yagiz.nizipli@sentry.io>> (he/him)
 * [apapirovski](https://github.com/apapirovski) -
   **Anatoli Papirovski** <<apapirovski@mac.com>> (he/him)
 * [benjamingr](https://github.com/benjamingr) -
   **Benjamin Gruenbaum** <<benjamingr@gmail.com>>
 * [BridgeAR](https://github.com/BridgeAR) -
   **Ruben Bridgewater** <<ruben@bridgewater.de>> (he/him)
-* [cjihrig](https://github.com/cjihrig) -
-  **Colin Ihrig** <<cjihrig@gmail.com>> (he/him)
-* [danielleadams](https://github.com/danielleadams) -
-  **Danielle Adams** <<adamzdanielle@gmail.com>> (she/her)
 * [GeoffreyBooth](https://github.com/geoffreybooth) -
   **Geoffrey Booth** <<webadmin@geoffreybooth.com>> (he/him)
 * [gireeshpunathil](https://github.com/gireeshpunathil) -
@@ -215,10 +211,14 @@ For information about the governance of the Node.js project, see
   **Ben Noordhuis** <<info@bnoordhuis.nl>>
 * [ChALkeR](https://github.com/ChALkeR) -
   **Сковорода Никита Андреевич** <<chalkerx@gmail.com>> (he/him)
+* [cjihrig](https://github.com/cjihrig) -
+  **Colin Ihrig** <<cjihrig@gmail.com>> (he/him)
 * [codebytere](https://github.com/codebytere) -
   **Shelley Vohr** <<shelley.vohr@gmail.com>> (she/her)
 * [danbev](https://github.com/danbev) -
   **Daniel Bevenius** <<daniel.bevenius@gmail.com>> (he/him)
+* [danielleadams](https://github.com/danielleadams) -
+  **Danielle Adams** <<adamzdanielle@gmail.com>> (she/her)
 * [fhinkel](https://github.com/fhinkel) -
   **Franziska Hinkelmann** <<franziska.hinkelmann@gmail.com>> (she/her)
 * [gabrielschulhof](https://github.com/gabrielschulhof) -
@@ -288,7 +288,7 @@ For information about the governance of the Node.js project, see
 * [aduh95](https://github.com/aduh95) -
   **Antoine du Hamel** <<duhamelantoine1995@gmail.com>> (he/him)
 * [anonrig](https://github.com/anonrig) -
-  **Yagiz Nizipli** <<yagiz@nizipli.com>> (he/him)
+  **Yagiz Nizipli** <<yagiz.nizipli@sentry.io>> (he/him)
 * [antsmartian](https://github.com/antsmartian) -
   **Anto Aravinth** <<anto.aravinth.cse@gmail.com>> (he/him)
 * [apapirovski](https://github.com/apapirovski) -
@@ -308,7 +308,7 @@ For information about the governance of the Node.js project, see
 * [bmeck](https://github.com/bmeck) -
   **Bradley Farias** <<bradley.meck@gmail.com>>
 * [bnb](https://github.com/bnb) -
-  **Tierney Cyren** <<hello@bnb.im>> (they/he)
+  **Tierney Cyren** <<hello@bnb.im>> (they/them)
 * [bnoordhuis](https://github.com/bnoordhuis) -
   **Ben Noordhuis** <<info@bnoordhuis.nl>>
 * [BridgeAR](https://github.com/BridgeAR) -
@@ -341,12 +341,14 @@ For information about the governance of the Node.js project, see
   **Adrian Estrada** <<edsadr@gmail.com>> (he/him)
 * [erickwendel](https://github.com/erickwendel) -
   **Erick Wendel** <<erick.workspace@gmail.com>> (he/him)
+* [Ethan-Arrowood](https://github.com/Ethan-Arrowood) -
+  **Ethan Arrowood** <<ethan@arrowood.dev>> (he/him)
 * [fhinkel](https://github.com/fhinkel) -
   **Franziska Hinkelmann** <<franziska.hinkelmann@gmail.com>> (she/her)
 * [F3n67u](https://github.com/F3n67u) -
   **Feng Yu** <<F3n67u@outlook.com>> (he/him)
 * [Flarna](https://github.com/Flarna) -
-  **Gerhard Stöbich** <<deb2001-github@yahoo.de>>  (he/they)
+  **Gerhard Stöbich** <<deb2001-github@yahoo.de>> (he/they)
 * [gabrielschulhof](https://github.com/gabrielschulhof) -
   **Gabriel Schulhof** <<gabrielschulhof@gmail.com>>
 * [gengjiawen](https://github.com/gengjiawen) -
@@ -357,6 +359,8 @@ For information about the governance of the Node.js project, see
   **Gireesh Punathil** <<gpunathi@in.ibm.com>> (he/him)
 * [guybedford](https://github.com/guybedford) -
   **Guy Bedford** <<guybedford@gmail.com>> (he/him)
+* [H4ad](https://github.com/H4ad) -
+  **Vinícius Lourenço Claro Cardoso** <<contact@viniciusl.com.br>> (he/him)
 * [HarshithaKP](https://github.com/HarshithaKP) -
   **Harshitha K P** <<harshitha014@gmail.com>> (she/her)
 * [himself65](https://github.com/himself65) -
@@ -415,6 +419,8 @@ For information about the governance of the Node.js project, see
   **Alba Mendez** <<me@alba.sh>> (she/her)
 * [MoLow](https://github.com/MoLow) -
   **Moshe Atlow** <<moshe@atlow.co.il>> (he/him)
+* [MrJithil](https://github.com/MrJithil) -
+  **Jithil P Ponnan** <<jithil@outlook.com>> (he/him)
 * [mscdex](https://github.com/mscdex) -
   **Brian White** <<mscdex@mscdex.net>>
 * [MylesBorins](https://github.com/MylesBorins) -
@@ -431,6 +437,8 @@ For information about the governance of the Node.js project, see
   **Rafael Gonzaga** <<rafael.nunu@hotmail.com>> (he/him)
 * [RaisinTen](https://github.com/RaisinTen) -
   **Darshan Sen** <<raisinten@gmail.com>> (he/him)
+* [rluvaton](https://github.com/rluvaton) -
+  **Raz Luvaton** <<rluvaton@gmail.com>> (he/him)
 * [richardlau](https://github.com/richardlau) -
   **Richard Lau** <<rlau@redhat.com>>
 * [rickyes](https://github.com/rickyes) -
@@ -707,6 +715,8 @@ maintaining the Node.js project.
   **Qingyu Deng** <<i@ayase-lab.com>>
 * [bmuenzenmeyer](https://github.com/bmuenzenmeyer) -
   **Brian Muenzenmeyer** <<brian.muenzenmeyer@gmail.com>> (he/him)
+* [CanadaHonk](https://github.com/CanadaHonk) -
+  **Oliver Medhurst** <<honk@goose.icu>> (they/them)
 * [daeyeon](https://github.com/daeyeon) -
   **Daeyeon Jeong** <<daeyeon.dev@gmail.com>> (he/him)
 * [F3n67u](https://github.com/F3n67u) -
@@ -719,6 +729,8 @@ maintaining the Node.js project.
   **Akhil Marsonya** <<akhil.marsonya27@gmail.com>> (he/him)
 * [meixg](https://github.com/meixg) -
   **Xuguang Mei** <<meixuguang@gmail.com>> (he/him)
+* [mertcanaltin](https://github.com/mertcanaltin) -
+  **Mert Can Altin** <<mertgold60@gmail.com>>
 * [Mesteery](https://github.com/Mesteery) -
   **Mestery** <<mestery@protonmail.com>> (he/him)
 * [preveen-stack](https://github.com/preveen-stack) -

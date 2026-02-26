@@ -1,4 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const { PrismaClient } = require('@prisma/client');
 
 // Prevent multiple instances in development (hot reload)
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };

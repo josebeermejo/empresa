@@ -1,7 +1,7 @@
 import type { FixPreview } from '../dto.js';
 import { getDataset, updateDatasetMeta } from './datasets.service.js';
 import { detectIssues } from './issues.service.js';
-import * as storage from '../lib/storage.js';
+import * as storage from '../../lib/storage.js';
 import { join } from 'path';
 
 /**

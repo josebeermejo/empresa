@@ -1,7 +1,7 @@
 import type { RuleSpec } from '../dto.js';
-import * as storage from '../lib/storage.js';
-import { generateRuleId } from '../lib/id.js';
-import { AppError } from '../lib/errors.js';
+import * as storage from '../../lib/storage.js';
+import { generateRuleId } from '../../lib/id.js';
+import { AppError } from '../../lib/errors.js';
 
 /**
  * Get all rules

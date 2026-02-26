@@ -20,7 +20,7 @@
 
 ### Prerrequisitos
 
-- **Node.js**: Versión 18 o superior (Requerido por Vite 5).
+- **Node.js**: Versión 12 o superior.
 - **NPM** o **PNPM**: Gestor de paquetes.
 
 ### Instalación y Ejecución Rápida
@@ -114,7 +114,7 @@ Para detalles más profundos sobre la arquitectura y seguridad, consulta los doc
 Se ha actualizado el proyecto para usar **NPM Workspaces** por defecto. Si intentas ejecutar `npm run dev` y recibes un error sobre `pnpm`, asegúrate de estar usando la última versión del código. Ya no es necesario instalar `pnpm`.
 
 ### 2. Error: `Prisma only supports Node.js >= 16.13` o similar
-Este proyecto utiliza tecnologías modernas (Vite 5, Prisma, Fastify) que requieren **Node.js v18** o superior. Si tu versión actual es v12 o v14, el sistema no funcionará.
+Este proyecto requiere **Node.js v12** o superior. Si tu versión actual es inferior, el sistema no funcionará.
 
 **Para actualizar Node.js en Ubuntu/WSL:**
 ```bash
@@ -122,13 +122,13 @@ Este proyecto utiliza tecnologías modernas (Vite 5, Prisma, Fastify) que requie
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 # Recargar shell
 source ~/.bashrc
-# Instalar Node 18
-nvm install 18
-nvm use 18
+# Instalar Node 12
+nvm install 12
+nvm use 12
 ```
 
 ### 3. Errores de Tipado (TypeScript)
-Si ves errores como `Cannot find type definition file for 'vitest/globals'`, es probable que sea porque las dependencias no se han instalado correctamente debido a la versión de Node. Una vez que actualices a Node 18 y ejecutes `npm install`, estos errores desaparecerán.
+Si ves errores como `Cannot find type definition file for 'vitest/globals'`, es probable que sea porque las dependencias no se han instalado correctamente debido a la versión de Node. Una vez que actualices a Node 12 y ejecutes `npm install`, estos errores desaparecerán.
 
 ---
 Desarrollado por el equipo de AI Data Steward.

@@ -1,8 +1,8 @@
-import { generateDatasetId } from '../lib/id.js';
-import * as storage from '../lib/storage.js';
-import { enqueueDatasetIngest } from '../lib/queue.js';
+import { generateDatasetId } from '../../lib/id.js';
+import * as storage from '../../lib/storage.js';
+import { enqueueDatasetIngest } from '../../lib/queue.js';
 import type { DatasetMetadata } from '../types.js';
-import { AppError } from '../lib/errors.js';
+import { AppError } from '../../lib/errors.js';
 
 /**
  * Create a new dataset entry
