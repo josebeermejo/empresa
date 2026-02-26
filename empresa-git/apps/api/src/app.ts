@@ -4,7 +4,7 @@ import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
 import env from './config/env.js';
-import logger from './lib/logger.js';
+
 import { errorHandler } from './lib/errors.js';
 
 // Routes
@@ -19,7 +19,7 @@ import { privacyRoutes } from './routes/privacy.js'; // This one was a named exp
 
 export async function buildApp() {
     const app = Fastify({
-        logger: logger as any, // Cast to any to avoid strict type mismatch with FastifyLogger
+        logger: {},
         requestIdLogLabel: 'reqId',
         disableRequestLogging: false,
     });

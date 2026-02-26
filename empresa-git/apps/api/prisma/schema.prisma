@@ -24,7 +24,7 @@ model User {
   id        String   @id @default(uuid())
   orgId     String   @map("org_id")
   email     String   @unique
-  role      String   // CHECK constraint in migration
+  role      String // CHECK constraint in migration
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -49,14 +49,12 @@ model Dataset {
   id        String   @id @default(uuid())
   projectId String   @map("project_id")
   filename  String
-  status    String   // CHECK constraint in migration
+  status    String // CHECK constraint in migration
   meta      Json     @default("{}")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  project Organization @relation(fields: [projectId], references: [id], onDelete: Cascade) // Linking to Org for simplicity in demo or Project?
-  // Schema says Project -> Dataset. Let's fix relation:
-  projectRel Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   columns Column[]
   issues  Issue[]
@@ -85,8 +83,8 @@ model Column {
 model Issue {
   id        String   @id @default(uuid())
   datasetId String   @map("dataset_id")
-  kind      String   // CHECK constraint
-  severity  String   // CHECK constraint
+  kind      String // CHECK constraint
+  severity  String // CHECK constraint
   rowNo     Int?     @map("row_no")
   colName   String?  @map("col_name")
   details   Json     @default("{}")
@@ -118,13 +116,13 @@ model Fix {
 }
 
 model Rule {
-  id        String   @id @default(uuid())
-  orgId     String   @map("org_id")
+  id        String    @id @default(uuid())
+  orgId     String    @map("org_id")
   name      String
-  kind      String   // CHECK constraint
-  severity  String   // CHECK constraint
+  kind      String // CHECK constraint
+  severity  String // CHECK constraint
   spec      Json
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime? @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -136,8 +134,8 @@ model Rule {
 model Export {
   id        String   @id @default(uuid())
   datasetId String   @map("dataset_id")
-  target    String   // CHECK constraint
-  status    String   // CHECK constraint
+  target    String // CHECK constraint
+  status    String // CHECK constraint
   details   Json     @default("{}")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
@@ -151,7 +149,7 @@ model Job {
   id        String   @id @default(uuid())
   name      String
   payload   Json
-  status    String   // CHECK constraint
+  status    String // CHECK constraint
   attempts  Int      @default(0)
   lastError String?  @map("last_error")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
